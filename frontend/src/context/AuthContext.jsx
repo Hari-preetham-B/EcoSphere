@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }) => {
         const data = await res.json()
         setProfile(data.user)
       } else {
-        console.error('Failed to fetch profile:', res.statusText)
+        console.error('Failed to fetch backend profile:', res.status, res.statusText)
         setProfile(null)
       }
     } catch (err) {
@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }) => {
   }
 
   useEffect(() => {
-    // 1. Get initial session
+    // 1. Get initial session from Supabase Auth
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }) => {
       }
     })
 
-    // 2. Listen to auth changes
+    // 2. Listen to real-time auth state changes from Supabase
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
@@ -61,8 +61,9 @@ export const AuthProvider = ({ children }) => {
     return () => subscription.unsubscribe()
   }, [])
 
-  // Sign up - defaults to Employee role automatically
+  // Sign up - strictly creates a real Supabase Auth user first
   const signUp = async ({ email, password, fullName }) => {
+    // 1. Call real Supabase Auth signup API
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -73,17 +74,38 @@ export const AuthProvider = ({ children }) => {
       }
     })
     
-    if (error) throw error
-
-    // Fetch updated session and profile after signup
-    if (data?.session?.access_token) {
-      await fetchProfile(data.session.access_token)
+    if (error) {
+      console.error('Supabase Auth SignUp Error:', error)
+      throw error
     }
 
+    if (!data?.user) {
+      throw new Error('Supabase Auth registration failed: No user returned from Supabase Auth')
+    }
+
+    let tokenToSync = data.session?.access_token
+
+    // If session was not automatically returned by signUp, attempt immediate sign in
+    if (!tokenToSync) {
+      const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      })
+      if (!signInErr && signInData?.session?.access_token) {
+        tokenToSync = signInData.session.access_token
+      }
+    }
+
+    if (!tokenToSync) {
+      throw new Error('Account created in Supabase Auth! Please check your email for confirmation before signing in.')
+    }
+
+    // 2. Sync profile in backend using real Supabase Auth session token
+    await fetchProfile(tokenToSync)
     return data
   }
 
-  // Sign in
+  // Sign in - strictly authenticates against Supabase Auth
   const signIn = async ({ email, password }) => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -91,9 +113,11 @@ export const AuthProvider = ({ children }) => {
     })
     if (error) throw error
 
-    if (data?.session?.access_token) {
-      await fetchProfile(data.session.access_token)
+    if (!data?.session?.access_token) {
+      throw new Error('No active Supabase Auth session returned')
     }
+
+    await fetchProfile(data.session.access_token)
     return data
   }
 
