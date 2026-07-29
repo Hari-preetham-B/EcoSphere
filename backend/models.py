@@ -11,6 +11,21 @@ class UserProfile(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    def __init__(self, id=None, email=None, full_name=None, role='Employee', created_at=None, updated_at=None, **kwargs):
+        super().__init__(**kwargs)
+        if id is not None:
+            self.id = id
+        if email is not None:
+            self.email = email
+        if full_name is not None:
+            self.full_name = full_name
+        if role is not None:
+            self.role = role
+        if created_at is not None:
+            self.created_at = created_at
+        if updated_at is not None:
+            self.updated_at = updated_at
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -37,6 +52,26 @@ class Department(db.Model):
     # Relationships
     parent = db.relationship('Department', remote_side=[id], backref=db.backref('sub_departments', lazy='dynamic'))
 
+    def __init__(self, id=None, name=None, code=None, head=None, parent_department_id=None, employee_count=0, status='Active', created_at=None, updated_at=None, **kwargs):
+        super().__init__(**kwargs)
+        if id is not None:
+            self.id = id
+        if name is not None:
+            self.name = name
+        if code is not None:
+            self.code = code
+        if head is not None:
+            self.head = head
+        self.parent_department_id = parent_department_id
+        if employee_count is not None:
+            self.employee_count = employee_count
+        if status is not None:
+            self.status = status
+        if created_at is not None:
+            self.created_at = created_at
+        if updated_at is not None:
+            self.updated_at = updated_at
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -60,6 +95,21 @@ class Category(db.Model):
     status = db.Column(db.String(20), nullable=False, default='Active')  # Active, Inactive
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __init__(self, id=None, name=None, type=None, status='Active', created_at=None, updated_at=None, **kwargs):
+        super().__init__(**kwargs)
+        if id is not None:
+            self.id = id
+        if name is not None:
+            self.name = name
+        if type is not None:
+            self.type = type
+        if status is not None:
+            self.status = status
+        if created_at is not None:
+            self.created_at = created_at
+        if updated_at is not None:
+            self.updated_at = updated_at
 
     def to_dict(self):
         return {
