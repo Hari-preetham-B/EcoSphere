@@ -173,7 +173,7 @@ flowchart TD
 
 ### 1. Clone & configure
 ```bash
-git clone https://github.com/<your-username>/EcoSphere.git
+git clone https://github.com/Hari-preetham-B/EcoSphere.git
 cd EcoSphere
 cp backend/.env.example backend/.env   # then fill in your real values
 ```
