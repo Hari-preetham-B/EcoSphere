@@ -537,3 +537,228 @@ class TrainingCompletion(db.Model):
         }
 
 
+# ─── Governance Module Models ──────────────────────────────────────────────
+
+class ESGPolicy(db.Model):
+    __tablename__ = 'esg_policies'
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    category = db.Column(db.String(100), nullable=False, default='General Governance')
+    version = db.Column(db.String(50), nullable=False, default='1.0')
+    status = db.Column(db.String(20), nullable=False, default='Active')  # Active, Draft, Archived
+    department_id = db.Column(db.Integer, db.ForeignKey('departments.id'), nullable=True)  # NULL = All Departments
+    effective_date = db.Column(db.Date, nullable=False, default=datetime.utcnow)
+    created_by = db.Column(db.String(64), db.ForeignKey('user_profiles.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    department = db.relationship('Department', foreign_keys=[department_id])
+    creator = db.relationship('UserProfile', foreign_keys=[created_by])
+
+    def __init__(self, title=None, description=None, category='General Governance',
+                 version='1.0', status='Active', department_id=None,
+                 effective_date=None, created_by=None, **kwargs):
+        super().__init__(**kwargs)
+        if title is not None:
+            self.title = title
+        if description is not None:
+            self.description = description
+        if category is not None:
+            self.category = category
+        if version is not None:
+            self.version = version
+        if status is not None:
+            self.status = status
+        self.department_id = department_id
+        if effective_date is not None:
+            self.effective_date = effective_date
+        self.created_by = created_by
+
+    def to_dict(self):
+        ack_count = getattr(self, '_ack_count', None)
+        total_users = getattr(self, '_total_users', None)
+        return {
+            'id': self.id,
+            'title': self.title,
+            'description': self.description or '',
+            'category': self.category,
+            'version': self.version,
+            'status': self.status,
+            'department_id': self.department_id,
+            'department_name': self.department.name if self.department else 'All Departments',
+            'effective_date': self.effective_date.isoformat() if self.effective_date else None,
+            'created_by': self.created_by,
+            'creator_name': self.creator.full_name if self.creator else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'ack_count': ack_count,
+            'total_users': total_users
+        }
+
+
+class PolicyAcknowledgement(db.Model):
+    __tablename__ = 'policy_acknowledgements'
+
+    id = db.Column(db.Integer, primary_key=True)
+    policy_id = db.Column(db.Integer, db.ForeignKey('esg_policies.id'), nullable=False)
+    user_id = db.Column(db.String(64), db.ForeignKey('user_profiles.id'), nullable=False)
+    status = db.Column(db.String(20), nullable=False, default='Acknowledged')  # Acknowledged, Pending
+    acknowledged_at = db.Column(db.DateTime, default=datetime.utcnow)
+    reminder_sent_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    policy = db.relationship('ESGPolicy', foreign_keys=[policy_id], backref=db.backref('acknowledgements', cascade='all, delete-orphan'))
+    user = db.relationship('UserProfile', foreign_keys=[user_id])
+
+    def __init__(self, policy_id=None, user_id=None, status='Acknowledged',
+                 acknowledged_at=None, reminder_sent_at=None, **kwargs):
+        super().__init__(**kwargs)
+        if policy_id is not None:
+            self.policy_id = policy_id
+        if user_id is not None:
+            self.user_id = user_id
+        if status is not None:
+            self.status = status
+        if acknowledged_at is not None:
+            self.acknowledged_at = acknowledged_at
+        self.reminder_sent_at = reminder_sent_at
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'policy_id': self.policy_id,
+            'policy_title': self.policy.title if self.policy else None,
+            'user_id': self.user_id,
+            'user_name': self.user.full_name if self.user else 'Unknown',
+            'user_email': self.user.email if self.user else '',
+            'status': self.status,
+            'acknowledged_at': self.acknowledged_at.isoformat() if self.acknowledged_at else None,
+            'reminder_sent_at': self.reminder_sent_at.isoformat() if self.reminder_sent_at else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class Audit(db.Model):
+    __tablename__ = 'audits'
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    department_id = db.Column(db.Integer, db.ForeignKey('departments.id'), nullable=False)
+    auditor_name = db.Column(db.String(150), nullable=False)
+    audit_date = db.Column(db.Date, nullable=False)
+    scope = db.Column(db.Text, nullable=True)
+    findings_summary = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(20), nullable=False, default='Completed')  # Scheduled, In Progress, Completed
+    created_by = db.Column(db.String(64), db.ForeignKey('user_profiles.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    department = db.relationship('Department', foreign_keys=[department_id])
+    creator = db.relationship('UserProfile', foreign_keys=[created_by])
+
+    def __init__(self, title=None, department_id=None, auditor_name=None, audit_date=None,
+                 scope=None, findings_summary=None, status='Completed', created_by=None, **kwargs):
+        super().__init__(**kwargs)
+        if title is not None:
+            self.title = title
+        if department_id is not None:
+            self.department_id = department_id
+        if auditor_name is not None:
+            self.auditor_name = auditor_name
+        if audit_date is not None:
+            self.audit_date = audit_date
+        if scope is not None:
+            self.scope = scope
+        if findings_summary is not None:
+            self.findings_summary = findings_summary
+        if status is not None:
+            self.status = status
+        self.created_by = created_by
+
+    def to_dict(self):
+        issues_list = [issue.to_dict() for issue in self.issues] if hasattr(self, 'issues') and self.issues else []
+        overdue_count = sum(1 for issue in issues_list if issue.get('is_overdue'))
+        return {
+            'id': self.id,
+            'title': self.title,
+            'department_id': self.department_id,
+            'department_name': self.department.name if self.department else None,
+            'auditor_name': self.auditor_name,
+            'audit_date': self.audit_date.isoformat() if self.audit_date else None,
+            'scope': self.scope or '',
+            'findings_summary': self.findings_summary or '',
+            'status': self.status,
+            'created_by': self.created_by,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'issues_count': len(issues_list),
+            'overdue_issues_count': overdue_count
+        }
+
+
+class ComplianceIssue(db.Model):
+    __tablename__ = 'compliance_issues'
+
+    id = db.Column(db.Integer, primary_key=True)
+    audit_id = db.Column(db.Integer, db.ForeignKey('audits.id'), nullable=False)
+    severity = db.Column(db.String(20), nullable=False)  # Low, Medium, High, Critical
+    description = db.Column(db.Text, nullable=False)
+    owner_id = db.Column(db.String(64), db.ForeignKey('user_profiles.id'), nullable=False)
+    due_date = db.Column(db.Date, nullable=False)
+    status = db.Column(db.String(20), nullable=False, default='Open')  # Open, In Progress, Resolved, Closed
+    resolution_notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    audit = db.relationship('Audit', foreign_keys=[audit_id], backref=db.backref('issues', cascade='all, delete-orphan'))
+    owner = db.relationship('UserProfile', foreign_keys=[owner_id])
+
+    def __init__(self, audit_id=None, severity=None, description=None, owner_id=None,
+                 due_date=None, status='Open', resolution_notes=None, **kwargs):
+        super().__init__(**kwargs)
+        if audit_id is not None:
+            self.audit_id = audit_id
+        if severity is not None:
+            self.severity = severity
+        if description is not None:
+            self.description = description
+        if owner_id is not None:
+            self.owner_id = owner_id
+        if due_date is not None:
+            self.due_date = due_date
+        if status is not None:
+            self.status = status
+        if resolution_notes is not None:
+            self.resolution_notes = resolution_notes
+
+    @property
+    def is_overdue(self):
+        if self.status in ['Open', 'In Progress'] and self.due_date:
+            from datetime import date
+            return self.due_date < date.today()
+        return False
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'audit_id': self.audit_id,
+            'audit_title': self.audit.title if self.audit else None,
+            'department_id': self.audit.department_id if self.audit else None,
+            'department_name': self.audit.department.name if (self.audit and self.audit.department) else None,
+            'severity': self.severity,
+            'description': self.description,
+            'owner_id': self.owner_id,
+            'owner_name': self.owner.full_name if (self.owner and self.owner.full_name) else (self.owner.email if self.owner else 'Unassigned'),
+            'owner_email': self.owner.email if self.owner else '',
+            'due_date': self.due_date.isoformat() if self.due_date else None,
+            'status': self.status,
+            'resolution_notes': self.resolution_notes or '',
+            'is_overdue': self.is_overdue,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+
