@@ -276,7 +276,7 @@ EcoSphere/
 ## 🖼 Screenshots
 
 <div align="center">
-<i>Add screenshots or a short demo GIF here — the Organization Dashboard and Governance overdue-issue banner make strong first impressions.</i>
+<i>Add screenshots or short demo GIF here — the Organization Dashboard and Governance overdue-issue banner make strong first impressions.</i>
 </div>
 
 ---
