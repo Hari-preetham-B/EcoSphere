@@ -45,9 +45,8 @@ def compute_department_scores(dept_id, weights=None):
     if not dept:
         return None
 
-    dept_users = UserProfile.query.filter_by(department=dept.name).all()
-    dept_user_ids = [u.id for u in dept_users]
-    dept_user_count = max(1, len(dept_users))
+    dept_user_count = max(1, dept.employee_count or 1)
+    dept_user_ids = [u.id for u in UserProfile.query.all()]  # Default user list for matching participations / completions
 
     # 1. Environmental Score Components
     # (a) Relative Emissions Benchmark
