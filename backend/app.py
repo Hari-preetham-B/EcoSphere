@@ -18,6 +18,7 @@ from routes.diversity_routes import diversity_bp
 from routes.training_routes import training_bp
 from routes.governance_routes import governance_bp, seed_governance_data
 from routes.gamification_routes import gamification_bp, seed_gamification_data
+from routes.scoring_routes import scoring_bp, seed_multi_department_scoring_data
 
 from sqlalchemy import text
 
@@ -54,6 +55,7 @@ def create_app():
     app.register_blueprint(training_bp, url_prefix='/api/trainings')
     app.register_blueprint(governance_bp, url_prefix='/api/governance')
     app.register_blueprint(gamification_bp, url_prefix='/api/gamification')
+    app.register_blueprint(scoring_bp, url_prefix='/api/scoring')
 
     @app.route('/health', methods=['GET'])
     def health_check():
@@ -72,6 +74,7 @@ def create_app():
             seed_emission_factors()
             seed_governance_data()
             seed_gamification_data()
+            seed_multi_department_scoring_data()
         except Exception as e:
             print(f"Error initializing database tables: {e}")
 

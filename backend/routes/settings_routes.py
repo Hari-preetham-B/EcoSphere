@@ -6,15 +6,18 @@ from datetime import datetime
 
 settings_bp = Blueprint('settings', __name__)
 
-_DEFAULTS = {
-    'auto_emission_calc': 'false',
-    'require_proof_for_csr': 'false',
+_DEFAULT_SETTINGS = {
+    'auto_emission_calc': 'true',
+    'require_proof_for_csr': 'true',
     'badge_auto_award': 'true',
+    'weight_env': '0.40',
+    'weight_soc': '0.30',
+    'weight_gov': '0.30',
 }
 
 
 def _ensure_defaults():
-    for key, val in _DEFAULTS.items():
+    for key, val in _DEFAULT_SETTINGS.items():
         if not Setting.query.filter_by(key=key).first():
             db.session.add(Setting(key=key, value=val, updated_at=datetime.utcnow()))
     db.session.commit()
