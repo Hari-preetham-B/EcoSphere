@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import {
@@ -12,11 +12,18 @@ import {
   Settings,
   UserCog,
   ChevronRight,
-  ShieldCheck
+  ChevronDown,
+  ShieldCheck,
+  Zap,
+  Target,
+  FlaskConical,
 } from 'lucide-react'
 
 const Sidebar = () => {
   const { role } = useAuth()
+  const [envOpen, setEnvOpen] = useState(false)
+
+  const canEditEnv = role === 'Admin' || role === 'ESG Manager'
 
   const mainNav = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -83,7 +90,41 @@ const Sidebar = () => {
           <div className="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
             Core Modules
           </div>
-          <div className="space-y-1">{mainNav.map(renderLink)}</div>
+          <div className="space-y-1">
+            {/* Dashboard */}
+            {renderLink({ name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard })}
+
+            {/* Environmental – collapsible */}
+            <div>
+              <button
+                onClick={() => setEnvOpen(o => !o)}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all group ${
+                  envOpen ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Leaf className="w-4 h-4 transition-transform group-hover:scale-110" />
+                  <span>Environmental</span>
+                </div>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${envOpen ? 'rotate-180 text-emerald-400' : 'text-slate-600'}`} />
+              </button>
+
+              {envOpen && (
+                <div className="ml-4 mt-1 space-y-0.5 border-l border-slate-800 pl-3">
+                  {renderLink({ name: 'Dashboard', path: '/environmental', icon: Leaf })}
+                  {renderLink({ name: 'Transactions', path: '/environmental/transactions', icon: Zap })}
+                  {renderLink({ name: 'Goals', path: '/environmental/goals', icon: Target })}
+                  {renderLink({ name: 'By Department', path: '/environmental/departments', icon: Building2 })}
+                  {canEditEnv && renderLink({ name: 'Emission Factors', path: '/environmental/factors', icon: FlaskConical })}
+                </div>
+              )}
+            </div>
+
+            {renderLink({ name: 'Social', path: '/social', icon: Users })}
+            {renderLink({ name: 'Governance', path: '/governance', icon: ShieldCheck })}
+            {renderLink({ name: 'Gamification', path: '/gamification', icon: Trophy })}
+            {renderLink({ name: 'Reports', path: '/reports', icon: FileText })}
+          </div>
         </div>
 
         {/* Master Data Section (Admin Only) */}

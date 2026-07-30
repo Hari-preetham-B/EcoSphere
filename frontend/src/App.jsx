@@ -10,14 +10,19 @@ import Dashboard from './pages/Dashboard'
 import Departments from './pages/Departments'
 import Categories from './pages/Categories'
 import UserManagement from './pages/UserManagement'
+import Settings from './pages/Settings'
+
+import EnvironmentalDashboard from './pages/environmental/EnvironmentalDashboard'
+import EmissionFactors from './pages/environmental/EmissionFactors'
+import CarbonTransactions from './pages/environmental/CarbonTransactions'
+import SustainabilityGoals from './pages/environmental/SustainabilityGoals'
+import DepartmentTracking from './pages/environmental/DepartmentTracking'
 
 import {
-  EnvironmentalPage,
   SocialPage,
   GovernancePage,
   GamificationPage,
   ReportsPage,
-  SettingsPage
 } from './pages/Placeholders'
 
 function App() {
@@ -33,12 +38,19 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/environmental" element={<EnvironmentalPage />} />
+
+              {/* Environmental Module Routes */}
+              <Route path="/environmental" element={<EnvironmentalDashboard />} />
+              <Route path="/environmental/factors" element={<EmissionFactors />} />
+              <Route path="/environmental/transactions" element={<CarbonTransactions />} />
+              <Route path="/environmental/goals" element={<SustainabilityGoals />} />
+              <Route path="/environmental/departments" element={<DepartmentTracking />} />
+
               <Route path="/social" element={<SocialPage />} />
               <Route path="/governance" element={<GovernancePage />} />
               <Route path="/gamification" element={<GamificationPage />} />
               <Route path="/reports" element={<ReportsPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/settings" element={<Settings />} />
 
               {/* Admin Only Protected Routes */}
               <Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
