@@ -194,7 +194,7 @@ const OrganizationDashboard = () => {
 
               <div className="space-y-2.5">
                 {topPerformers.map((user, idx) => (
-                  <div key={user.id} className="flex items-center justify-between p-3 rounded-2xl bg-slate-900/60 border border-slate-800">
+                  <div key={user.user_id || user.id || idx} className="flex items-center justify-between p-3 rounded-2xl bg-slate-900/60 border border-slate-800">
                     <div className="flex items-center gap-3">
                       <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold font-mono ${
                         idx === 0 ? 'bg-amber-400 text-slate-950' : idx === 1 ? 'bg-slate-300 text-slate-950' : 'bg-amber-700 text-slate-100'
@@ -202,13 +202,13 @@ const OrganizationDashboard = () => {
                         {idx + 1}
                       </span>
                       <div>
-                        <p className="text-xs font-bold text-slate-200">{user.full_name}</p>
-                        <p className="text-[10px] text-slate-500">{user.department || 'General'}</p>
+                        <p className="text-xs font-bold text-slate-200">{user.user_name || user.full_name || user.user_email || 'Champion'}</p>
+                        <p className="text-[10px] text-slate-500">{user.department || user.department_name || 'EcoSphere Member'}</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs font-bold text-amber-400 font-mono">{user.points} pts</p>
-                      <p className="text-[10px] text-slate-500 font-mono">{user.lifetime_points_earned} XP lifetime</p>
+                      <p className="text-xs font-bold text-amber-400 font-mono">{user.points || 0} pts</p>
+                      <p className="text-[10px] text-slate-500 font-mono">{user.lifetime_points_earned || 0} XP lifetime</p>
                     </div>
                   </div>
                 ))}
