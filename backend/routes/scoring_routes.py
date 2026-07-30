@@ -371,6 +371,7 @@ def get_organization_score():
 @token_required
 def get_fixed_report():
     report_type = request.args.get('type', 'summary')
+    module_filter = request.args.get('module')  # Environmental, Social, Governance, Gamification
     dept_id = request.args.get('department_id')
     user_id = request.args.get('user_id')
     challenge_id = request.args.get('challenge_id')
@@ -381,7 +382,10 @@ def get_fixed_report():
     date_from = date_type.fromisoformat(date_from_str) if date_from_str else None
     date_to = date_type.fromisoformat(date_to_str) if date_to_str else None
 
-    if report_type == 'environmental':
+    # Determine effective report target based on module_filter or report_type
+    target_module = module_filter.lower() if module_filter else report_type.lower()
+
+    if target_module in ['environmental', 'env']:
         q = CarbonTransaction.query
         if dept_id: q = q.filter_by(department_id=int(dept_id))
         if category_id: q = q.filter_by(category_id=int(category_id))
@@ -395,21 +399,20 @@ def get_fixed_report():
             'data': [t.to_dict() for t in txs]
         }), 200
 
-    elif report_type == 'social':
+    elif target_module in ['social', 'gamification']:
         q = CSRParticipation.query
         if user_id: q = q.filter_by(user_id=user_id)
         if challenge_id:
-            # Filter participations linked to this activity
             q = q.filter_by(csr_activity_id=int(challenge_id))
         parts = q.order_by(CSRParticipation.joined_at.desc()).all()
         return jsonify({
-            'report_name': 'Social Responsibility & Community Engagement Report',
+            'report_name': 'Social & Gamification Engagement Report',
             'generated_at': datetime.utcnow().isoformat(),
             'record_count': len(parts),
             'data': [p.to_dict() for p in parts]
         }), 200
 
-    elif report_type == 'governance':
+    elif target_module in ['governance', 'gov']:
         q = ComplianceIssue.query
         if user_id: q = q.filter_by(owner_id=user_id)
         if date_from: q = q.filter(ComplianceIssue.due_date >= date_from)
@@ -422,7 +425,7 @@ def get_fixed_report():
             'data': [i.to_dict() for i in issues]
         }), 200
 
-    else:  # summary
+    else:  # summary / overall
         depts = Department.query.all()
         if dept_id:
             depts = [d for d in depts if d.id == int(dept_id)]

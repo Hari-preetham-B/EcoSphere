@@ -8,10 +8,17 @@ const ReportsPage = () => {
 
   const [reportType, setReportType] = useState('summary')
 
-  // All 6 Filter States
+  // All 6 Distinct Filter Types:
+  // 1. Department
+  // 2. Date Range (Date From + Date To)
+  // 3. Module (Environmental / Social / Governance / Gamification)
+  // 4. Employee
+  // 5. Challenge
+  // 6. ESG Category
   const [departmentId, setDepartmentId] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [selectedModule, setSelectedModule] = useState('')
   const [userId, setUserId] = useState('')
   const [challengeId, setChallengeId] = useState('')
   const [categoryId, setCategoryId] = useState('')
@@ -48,6 +55,7 @@ const ReportsPage = () => {
       setError('')
       const params = new URLSearchParams()
       params.append('type', reportType)
+      if (selectedModule) params.append('module', selectedModule)
       if (departmentId) params.append('department_id', departmentId)
       if (dateFrom) params.append('date_from', dateFrom)
       if (dateTo) params.append('date_to', dateTo)
@@ -62,7 +70,7 @@ const ReportsPage = () => {
     } finally {
       setLoading(false)
     }
-  }, [token, reportType, departmentId, dateFrom, dateTo, userId, challengeId, categoryId])
+  }, [token, reportType, selectedModule, departmentId, dateFrom, dateTo, userId, challengeId, categoryId])
 
   useEffect(() => { loadReport() }, [loadReport])
 
@@ -70,6 +78,7 @@ const ReportsPage = () => {
     setDepartmentId('')
     setDateFrom('')
     setDateTo('')
+    setSelectedModule('')
     setUserId('')
     setChallengeId('')
     setCategoryId('')
@@ -98,7 +107,7 @@ const ReportsPage = () => {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `EcoSphere_${reportType}_Report.${format === 'excel' ? 'xlsx' : format}`
+      a.download = `EcoSphere_${selectedModule || reportType}_Report.${format === 'excel' ? 'xlsx' : format}`
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -110,7 +119,7 @@ const ReportsPage = () => {
   }
 
   const REPORT_TABS = [
-    { id: 'summary', name: 'ESG Summary Report', icon: TableIcon },
+    { id: 'summary', name: 'ESG Executive Summary', icon: TableIcon },
     { id: 'environmental', name: 'Environmental Report', icon: Leaf },
     { id: 'social', name: 'Social Report', icon: Users },
     { id: 'governance', name: 'Governance Report', icon: ShieldCheck },
@@ -124,7 +133,7 @@ const ReportsPage = () => {
           <span className="text-xs font-mono font-bold uppercase tracking-wider text-sky-400">Reports & Analytics</span>
           <h1 className="text-2xl font-extrabold text-slate-100 mt-0.5">ESG Fixed & Custom Reports</h1>
           <p className="text-xs text-slate-400 mt-1">
-            Filter, inspect, and export comprehensive audit-ready reports across all 6 custom criteria.
+            Filter, inspect, and export comprehensive audit-ready reports across all 6 distinct filter types.
           </p>
         </div>
         
@@ -159,7 +168,7 @@ const ReportsPage = () => {
           return (
             <button
               key={tab.id}
-              onClick={() => setReportType(tab.id)}
+              onClick={() => { setReportType(tab.id); setSelectedModule(''); }}
               className={`px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${
                 active ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30' : 'text-slate-400 hover:text-slate-200'
               }`}>
@@ -174,7 +183,7 @@ const ReportsPage = () => {
       <div className="glass-panel p-5 rounded-3xl border border-slate-800 space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-            <Filter className="w-4 h-4 text-purple-400" /> Custom Filter Builder (All 6 Criteria)
+            <Filter className="w-4 h-4 text-purple-400" /> Custom Filter Builder (6 Filter Types)
           </span>
           <button
             onClick={handleClearFilters}
@@ -183,50 +192,65 @@ const ReportsPage = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
-          {/* 1. Department Filter */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3 text-xs">
+          {/* Filter 1: Department */}
           <div>
             <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">1. Department</label>
             <select
               value={departmentId}
               onChange={(e) => setDepartmentId(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-2.5 py-2 focus:outline-none focus:border-purple-500">
-              <option value="">All Departments</option>
+              className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-2 py-2 focus:outline-none focus:border-purple-500">
+              <option value="">All Depts</option>
               {departments.map((d) => (
                 <option key={d.id} value={d.id}>{d.name}</option>
               ))}
             </select>
           </div>
 
-          {/* 2. Date From */}
-          <div>
-            <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">2. Date From</label>
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-2.5 py-2 focus:outline-none focus:border-purple-500 font-mono text-[11px]"
-            />
+          {/* Filter 2: Date Range (From + To) */}
+          <div className="col-span-1 sm:col-span-2 grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">2. Date From</label>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-2 py-2 focus:outline-none focus:border-purple-500 font-mono text-[11px]"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Date To</label>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-2 py-2 focus:outline-none focus:border-purple-500 font-mono text-[11px]"
+              />
+            </div>
           </div>
 
-          {/* 3. Date To */}
+          {/* Filter 3: Module */}
           <div>
-            <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">3. Date To</label>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-2.5 py-2 focus:outline-none focus:border-purple-500 font-mono text-[11px]"
-            />
+            <label className="block text-[10px] font-bold uppercase text-purple-400 mb-1">3. Module Filter</label>
+            <select
+              value={selectedModule}
+              onChange={(e) => setSelectedModule(e.target.value)}
+              className="w-full bg-slate-950 border border-purple-500/50 text-purple-200 font-semibold rounded-xl px-2 py-2 focus:outline-none focus:border-purple-400">
+              <option value="">All Modules</option>
+              <option value="Environmental">Environmental</option>
+              <option value="Social">Social</option>
+              <option value="Governance">Governance</option>
+              <option value="Gamification">Gamification</option>
+            </select>
           </div>
 
-          {/* 4. Employee Filter */}
+          {/* Filter 4: Employee */}
           <div>
             <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">4. Employee</label>
             <select
               value={userId}
               onChange={(e) => setUserId(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-2.5 py-2 focus:outline-none focus:border-purple-500">
+              className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-2 py-2 focus:outline-none focus:border-purple-500">
               <option value="">All Employees</option>
               {usersList.map((u) => (
                 <option key={u.id} value={u.id}>{u.full_name || u.email}</option>
@@ -234,13 +258,13 @@ const ReportsPage = () => {
             </select>
           </div>
 
-          {/* 5. Challenge Filter */}
+          {/* Filter 5: Challenge */}
           <div>
             <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">5. Challenge</label>
             <select
               value={challengeId}
               onChange={(e) => setChallengeId(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-2.5 py-2 focus:outline-none focus:border-purple-500">
+              className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-2 py-2 focus:outline-none focus:border-purple-500">
               <option value="">All Challenges</option>
               {challenges.map((c) => (
                 <option key={c.id} value={c.id}>{c.title}</option>
@@ -248,13 +272,13 @@ const ReportsPage = () => {
             </select>
           </div>
 
-          {/* 6. ESG Category Filter */}
+          {/* Filter 6: ESG Category */}
           <div>
             <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">6. ESG Category</label>
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-2.5 py-2 focus:outline-none focus:border-purple-500">
+              className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-2 py-2 focus:outline-none focus:border-purple-500">
               <option value="">All Categories</option>
               {categories.map((cat) => (
                 <option key={cat.id} value={cat.id}>{cat.name}</option>
