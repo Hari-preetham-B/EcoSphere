@@ -369,10 +369,11 @@ def remind_policy_acknowledgement(policy_id):
     now = datetime.utcnow()
     reminded_count = 0
 
+    from services.notification_service import send_notification
+
     for user in users:
         ack = existing_acks.get(user.id)
         if not ack:
-            # Create a pending acknowledgement record with reminder timestamp logged
             new_ack = PolicyAcknowledgement(
                 policy_id=policy_id,
                 user_id=user.id,
@@ -385,12 +386,20 @@ def remind_policy_acknowledgement(policy_id):
             ack.reminder_sent_at = now
             reminded_count += 1
 
+        # Dispatch real notification & email reminder to pending user
+        if not ack or ack.status == 'Pending':
+            send_notification(
+                user_id=user.id,
+                title=f"Policy Acknowledgement Reminder: {pol.title}",
+                message=f"Please review and acknowledge the required ESG Policy '{pol.title}' (Version {pol.version}).",
+                event_type="policy_reminder",
+                link="/governance"
+            )
+
     db.session.commit()
 
     return jsonify({
-        'status': 'success',
-        'message': f'Reminder notifications logged for {reminded_count} employees pending policy acknowledgement.',
-        'policy_id': policy_id,
+        'message': f'Acknowledgement reminders sent to {reminded_count} employee(s).',
         'reminded_count': reminded_count,
         'timestamp': now.isoformat()
     }), 200
@@ -567,6 +576,20 @@ def create_compliance_issue():
 
     db.session.add(issue)
     db.session.commit()
+
+    # Notify the assigned owner about the new compliance issue
+    try:
+        from services.notification_service import send_notification
+        send_notification(
+            user_id=owner_id,
+            title=f"New Compliance Issue Assigned: {severity} Severity",
+            message=f"You have been assigned a compliance issue: \"{description}\". Due: {due_date_str}.",
+            event_type="compliance_issue",
+            link="/governance"
+        )
+    except Exception as e:
+        print(f"[Notification Warning] Could not send compliance issue notification: {e}")
+
     return jsonify(issue.to_dict()), 201
 
 

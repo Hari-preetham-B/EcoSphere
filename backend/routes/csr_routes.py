@@ -230,6 +230,19 @@ def approve_participation(part_id):
         # Auto-award badges based on updated lifetime_points_earned and CSR count
         _check_badges(part.user_id)
 
+        try:
+            from services.notification_service import send_notification
+            act_name = part.activity.name if part.activity else 'CSR Activity'
+            send_notification(
+                user_id=part.user_id,
+                title=f"CSR Participation Approved: {act_name}",
+                message=f"Your participation in '{act_name}' has been approved and {reward} points have been awarded.",
+                event_type="csr_decision",
+                link="/social"
+            )
+        except Exception as e:
+            print(f"[Notification Warning] CSR approve notification failed: {e}")
+
     return jsonify(part.to_dict()), 200
 
 
@@ -248,4 +261,19 @@ def reject_participation(part_id):
         part.notes = data['notes'].strip()
 
     db.session.commit()
+
+    try:
+        from services.notification_service import send_notification
+        act_name = part.activity.name if part.activity else 'CSR Activity'
+        notes_txt = data.get('notes', '')
+        send_notification(
+            user_id=part.user_id,
+            title=f"CSR Participation Rejected: {act_name}",
+            message=f"Your participation in '{act_name}' was not approved.{' Note: ' + notes_txt if notes_txt else ''}",
+            event_type="csr_decision",
+            link="/social"
+        )
+    except Exception as e:
+        print(f"[Notification Warning] CSR reject notification failed: {e}")
+
     return jsonify(part.to_dict()), 200

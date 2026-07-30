@@ -62,6 +62,17 @@ def check_and_award_badges(user_id):
         if earned:
             ub = UserBadge(user_id=user_id, badge_id=badge.id)
             db.session.add(ub)
+            try:
+                from services.notification_service import send_notification
+                send_notification(
+                    user_id=user_id,
+                    title=f"Badge Unlocked: {badge.name}!",
+                    message=f"Congratulations! You have earned the '{badge.name}' badge. Keep it up!",
+                    event_type="badge_unlock",
+                    link="/gamification"
+                )
+            except Exception as e:
+                print(f"[Notification Warning] Badge notification failed: {e}")
 
     try:
         db.session.commit()
@@ -297,6 +308,19 @@ def approve_participation(part_id):
     # Check and auto-award badges based on updated lifetime_points_earned and completed challenge count
     check_and_award_badges(part.user_id)
 
+    try:
+        from services.notification_service import send_notification
+        ch_name = part.challenge.name if part.challenge else 'Challenge'
+        send_notification(
+            user_id=part.user_id,
+            title=f"Challenge Submission Approved: {ch_name}",
+            message=f"Your submission for '{ch_name}' has been approved and {xp} XP points have been awarded.",
+            event_type="csr_decision",
+            link="/gamification"
+        )
+    except Exception as e:
+        print(f"[Notification Warning] Challenge approve notification failed: {e}")
+
     return jsonify(part.to_dict()), 200
 
 
@@ -314,6 +338,21 @@ def reject_participation(part_id):
     if 'notes' in data:
         part.notes = data['notes'].strip()
     db.session.commit()
+
+    try:
+        from services.notification_service import send_notification
+        ch_name = part.challenge.name if part.challenge else 'Challenge'
+        notes_txt = data.get('notes', '')
+        send_notification(
+            user_id=part.user_id,
+            title=f"Challenge Submission Rejected: {ch_name}",
+            message=f"Your submission for '{ch_name}' was not approved.{' Note: ' + notes_txt if notes_txt else ''}",
+            event_type="csr_decision",
+            link="/gamification"
+        )
+    except Exception as e:
+        print(f"[Notification Warning] Challenge reject notification failed: {e}")
+
     return jsonify(part.to_dict()), 200
 
 

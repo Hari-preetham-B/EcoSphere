@@ -19,6 +19,7 @@ from routes.training_routes import training_bp
 from routes.governance_routes import governance_bp, seed_governance_data
 from routes.gamification_routes import gamification_bp, seed_gamification_data
 from routes.scoring_routes import scoring_bp, seed_multi_department_scoring_data
+from routes.notification_routes import notification_bp
 
 from sqlalchemy import text
 
@@ -56,6 +57,7 @@ def create_app():
     app.register_blueprint(governance_bp, url_prefix='/api/governance')
     app.register_blueprint(gamification_bp, url_prefix='/api/gamification')
     app.register_blueprint(scoring_bp, url_prefix='/api/scoring')
+    app.register_blueprint(notification_bp, url_prefix='/api/notifications')
 
     @app.route('/health', methods=['GET'])
     def health_check():

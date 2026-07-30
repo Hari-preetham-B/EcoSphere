@@ -1017,3 +1017,73 @@ class RewardRedemption(db.Model):
             'status': self.status,
             'redeemed_at': self.redeemed_at.isoformat() if self.redeemed_at else None,
         }
+
+
+# ─── Phase 6 Notifications & Settings Models ──────────────────────────────────
+
+class Notification(db.Model):
+    __tablename__ = 'notifications'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String(64), db.ForeignKey('user_profiles.id'), nullable=False)
+    title = db.Column(db.String(250), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    type = db.Column(db.String(50), nullable=False, default='General')  # Compliance, CSR, Challenge, Policy, Badge, System
+    is_read = db.Column(db.Boolean, nullable=False, default=False)
+    link = db.Column(db.String(500), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('UserProfile', foreign_keys=[user_id])
+
+    def __init__(self, user_id=None, title=None, message=None, type='General', is_read=False, link=None, **kwargs):
+        super().__init__(**kwargs)
+        if user_id is not None:
+            self.user_id = user_id
+        if title is not None:
+            self.title = title
+        if message is not None:
+            self.message = message
+        if type is not None:
+            self.type = type
+        self.is_read = is_read
+        if link is not None:
+            self.link = link
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'title': self.title,
+            'message': self.message,
+            'type': self.type,
+            'is_read': self.is_read,
+            'link': self.link or '',
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class NotificationPref(db.Model):
+    __tablename__ = 'notification_prefs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    event_type = db.Column(db.String(50), unique=True, nullable=False)  # compliance_issue, csr_decision, policy_reminder, badge_unlock
+    in_app_enabled = db.Column(db.Boolean, nullable=False, default=True)
+    email_enabled = db.Column(db.Boolean, nullable=False, default=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __init__(self, event_type=None, in_app_enabled=True, email_enabled=False, **kwargs):
+        super().__init__(**kwargs)
+        if event_type is not None:
+            self.event_type = event_type
+        self.in_app_enabled = in_app_enabled
+        self.email_enabled = email_enabled
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'event_type': self.event_type,
+            'in_app_enabled': self.in_app_enabled,
+            'email_enabled': self.email_enabled,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+        }
+

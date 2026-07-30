@@ -24,6 +24,9 @@ import {
   Gift,
   Medal,
   BarChart3,
+  Bell,
+  BellRing,
+  Sliders,
 } from 'lucide-react'
 
 const Sidebar = () => {
@@ -52,6 +55,9 @@ const Sidebar = () => {
   ]
 
   const systemNav = [
+    { name: 'Notifications', path: '/notifications', icon: Bell },
+    { name: 'Notification Settings', path: '/settings/notifications', icon: BellRing, adminOnly: true },
+    { name: 'ESG Configuration', path: '/settings/esg', icon: Sliders, adminOnly: true },
     { name: 'Settings', path: '/settings', icon: Settings },
   ]
 

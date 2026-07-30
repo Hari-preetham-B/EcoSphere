@@ -37,6 +37,10 @@ import BadgesPage from './pages/gamification/BadgesPage'
 import OrganizationDashboard from './pages/scoring/OrganizationDashboard'
 import ReportsPage from './pages/scoring/ReportsPage'
 
+import NotificationsPage from './pages/notifications/NotificationsPage'
+import NotificationSettingsPage from './pages/settings/NotificationSettingsPage'
+import ESGConfigurationPage from './pages/settings/ESGConfigurationPage'
+
 function App() {
   return (
     <BrowserRouter>
@@ -82,6 +86,11 @@ function App() {
               <Route path="/scoring" element={<OrganizationDashboard />} />
               <Route path="/reports" element={<ReportsPage />} />
               <Route path="/settings" element={<Settings />} />
+
+              {/* Phase 6: Notifications & Settings */}
+              <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/settings/notifications" element={<NotificationSettingsPage />} />
+              <Route path="/settings/esg" element={<ESGConfigurationPage />} />
 
               {/* Admin Only Protected Routes */}
               <Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
