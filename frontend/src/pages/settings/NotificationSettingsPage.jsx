@@ -1,22 +1,24 @@
 import React, { useState, useEffect } from 'react'
-import { apiGet, apiPut } from '../../utils/api'
+import { api } from '../../lib/api'
+import { useAuth } from '../../context/AuthContext'
 import { BellRing, Mail, Loader2, Save } from 'lucide-react'
 
 const EVENT_LABELS = {
   compliance_issue: { label: 'Compliance Issues', desc: 'When a new compliance issue is assigned to you', icon: '⚠️' },
-  csr_decision:    { label: 'CSR & Challenge Decisions', desc: 'When your CSR or challenge submission is approved or rejected', icon: '✅' },
+  csr_decision: { label: 'CSR & Challenge Decisions', desc: 'When your CSR or challenge submission is approved or rejected', icon: '✅' },
   policy_reminder: { label: 'Policy Acknowledgement Reminders', desc: 'When you are reminded to acknowledge an ESG policy', icon: '📋' },
-  badge_unlock:    { label: 'Badge Unlocks', desc: 'When you earn a new badge', icon: '🏅' },
+  badge_unlock: { label: 'Badge Unlocks', desc: 'When you earn a new badge', icon: '🏅' },
 }
 
 export default function NotificationSettingsPage() {
+  const { token } = useAuth()
   const [prefs, setPrefs] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    apiGet('/settings/notifications')
+    api.get('/settings/notifications', token)
       .then(data => setPrefs(data || []))
       .finally(() => setLoading(false))
   }, [])
@@ -31,7 +33,7 @@ export default function NotificationSettingsPage() {
   const save = async () => {
     setSaving(true)
     try {
-      const updated = await apiPut('/settings/notifications', prefs)
+      const updated = await api.put('/settings/notifications', token, prefs)
       setPrefs(updated || prefs)
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)

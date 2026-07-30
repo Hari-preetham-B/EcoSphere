@@ -19,8 +19,8 @@ const request = async (method, path, token, body = undefined) => {
 }
 
 export const api = {
-  get:    (path, token)        => request('GET',    path, token),
-  post:   (path, token, body)  => request('POST',   path, token, body),
-  put:    (path, token, body)  => request('PUT',    path, token, body),
-  delete: (path, token)        => request('DELETE', path, token),
+  get: (path, token) => request('GET', path, token),
+  post: (path, token, body) => request('POST', path, token, body),
+  put: (path, token, body) => request('PUT', path, token, body),
+  delete: (path, token) => request('DELETE', path, token),
 }

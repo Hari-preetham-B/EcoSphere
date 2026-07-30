@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { apiGet, apiPut } from '../../utils/api'
+import { api } from '../../lib/api'
+import { useAuth } from '../../context/AuthContext'
 import { Sliders, Loader2, Save } from 'lucide-react'
 
 const SETTINGS_META = {
@@ -41,6 +42,7 @@ const SETTINGS_META = {
 const SECTIONS = ['Environmental', 'Social', 'Gamification', 'ESG Weights']
 
 export default function ESGConfigurationPage() {
+  const { token } = useAuth()
   const [settings, setSettings] = useState({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -48,7 +50,7 @@ export default function ESGConfigurationPage() {
   const [errors, setErrors] = useState({})
 
   useEffect(() => {
-    apiGet('/settings')
+    api.get('/settings', token)
       .then(data => setSettings(data || {}))
       .finally(() => setLoading(false))
   }, [])
@@ -82,7 +84,7 @@ export default function ESGConfigurationPage() {
 
     setSaving(true)
     try {
-      await apiPut('/settings', settings)
+      await api.put('/settings', token, settings)
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
     } catch (e) {
@@ -132,13 +134,11 @@ export default function ESGConfigurationPage() {
                     ) : (
                       <button
                         onClick={() => setBool(key)}
-                        className={`relative w-10 h-5 rounded-full flex-shrink-0 transition-colors ${
-                          settings[key] === 'true' ? 'bg-emerald-500' : 'bg-slate-700'
-                        }`}
+                        className={`relative w-10 h-5 rounded-full flex-shrink-0 transition-colors ${settings[key] === 'true' ? 'bg-emerald-500' : 'bg-slate-700'
+                          }`}
                       >
-                        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-                          settings[key] === 'true' ? 'translate-x-5' : 'translate-x-0.5'
-                        }`} />
+                        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${settings[key] === 'true' ? 'translate-x-5' : 'translate-x-0.5'
+                          }`} />
                       </button>
                     )}
                   </div>

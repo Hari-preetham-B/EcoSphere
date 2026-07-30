@@ -2,11 +2,11 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import Badge from '../common/Badge'
 import { LogOut, Bell } from 'lucide-react'
-import { apiGet, apiPut } from '../../utils/api'
+import { api } from '../../lib/api'
 import { useNavigate } from 'react-router-dom'
 
 const Navbar = () => {
-  const { profile, role, user, signOut } = useAuth()
+  const { profile, role, user, signOut, token } = useAuth()
   const navigate = useNavigate()
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
@@ -18,10 +18,10 @@ const Navbar = () => {
 
   const fetchNotifications = async () => {
     try {
-      const data = await apiGet('/notifications')
+      const data = await api.get('/notifications', token)
       setNotifications((data.notifications || []).slice(0, 6))
       setUnreadCount(data.unread_count || 0)
-    } catch (_) {}
+    } catch (_) { }
   }
 
   useEffect(() => {
@@ -40,18 +40,18 @@ const Navbar = () => {
 
   const markRead = async (id) => {
     try {
-      await apiPut(`/notifications/${id}/read`, {})
+      await api.put(`/notifications/${id}/read`, token, {})
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n))
       setUnreadCount(prev => Math.max(0, prev - 1))
-    } catch (_) {}
+    } catch (_) { }
   }
 
   const markAllRead = async () => {
     try {
-      await apiPut('/notifications/read-all', {})
+      await api.put('/notifications/read-all', token, {})
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
       setUnreadCount(0)
-    } catch (_) {}
+    } catch (_) { }
   }
 
   const typeIcon = (type) => {
@@ -154,4 +154,3 @@ const Navbar = () => {
 }
 
 export default Navbar
-
