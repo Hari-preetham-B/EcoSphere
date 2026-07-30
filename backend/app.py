@@ -12,6 +12,7 @@ from routes.carbon_transaction_routes import carbon_transactions_bp
 from routes.sustainability_goal_routes import sustainability_goals_bp
 from routes.settings_routes import settings_bp
 from routes.erp_routes import erp_bp, seed_erp_records
+from routes.emission_factor_routes import emission_factors_bp, seed_emission_factors
 
 def create_app():
     app = Flask(__name__)
@@ -47,6 +48,7 @@ def create_app():
             db.create_all()
             print("Database tables initialized successfully.")
             seed_erp_records()
+            seed_emission_factors()
         except Exception as e:
             print(f"Error initializing database tables: {e}")
 

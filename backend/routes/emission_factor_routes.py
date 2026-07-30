@@ -6,6 +6,68 @@ from auth import token_required, require_role
 emission_factors_bp = Blueprint('emission_factors', __name__)
 
 
+def seed_emission_factors():
+    """Seed commonly-used default Emission Factors if the table is empty.
+    NOTE: These are widely-cited approximate CO2e conversion values and are
+    provided as a starting point only.  An Admin should review and refine them
+    for the organisation's specific energy supplier, country grid mix, and
+    vehicle fleet before relying on them in production reports.
+    Sources: DEFRA 2023 GHG Conversion Factors, IPCC AR6.
+    """
+    if EmissionFactor.query.count() > 0:
+        return
+
+    defaults = [
+        EmissionFactor(
+            activity_type='Diesel Combustion',
+            unit='litre',
+            co2e_factor=2.68,
+            description='Road diesel (DEFRA 2023 scope 1). '
+                        'Placeholder – refine for actual fuel grade.',
+        ),
+        EmissionFactor(
+            activity_type='Petrol Combustion',
+            unit='litre',
+            co2e_factor=2.31,
+            description='Motor gasoline (DEFRA 2023 scope 1). '
+                        'Placeholder – refine for actual fuel grade.',
+        ),
+        EmissionFactor(
+            activity_type='Grid Electricity',
+            unit='kWh',
+            co2e_factor=0.233,
+            description='UK national grid average (DEFRA 2023 scope 2). '
+                        'Placeholder – replace with your country / supplier factor.',
+        ),
+        EmissionFactor(
+            activity_type='Natural Gas',
+            unit='m³',
+            co2e_factor=2.03,
+            description='Natural gas combustion (DEFRA 2023 scope 1). '
+                        'Placeholder – verify calorific value for your supply.',
+        ),
+        EmissionFactor(
+            activity_type='Air Travel (Economy)',
+            unit='km',
+            co2e_factor=0.151,
+            description='Short-haul economy class, including RFI (DEFRA 2023). '
+                        'Placeholder – use distance-band factors for accuracy.',
+        ),
+        EmissionFactor(
+            activity_type='Water Supply',
+            unit='litre',
+            co2e_factor=0.000344,
+            description='Mains water supply + treatment (DEFRA 2023). '
+                        'Placeholder – refine for local water authority.',
+        ),
+    ]
+
+    for ef in defaults:
+        db.session.add(ef)
+    db.session.commit()
+    print(f'[Emission Factor Seeder] Seeded {len(defaults)} default factors.')
+
+
 @emission_factors_bp.route('', methods=['GET'])
 @token_required
 def get_emission_factors():
