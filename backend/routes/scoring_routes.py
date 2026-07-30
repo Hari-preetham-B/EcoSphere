@@ -1,12 +1,12 @@
 import io
 import csv
 from datetime import datetime, date as date_type
-from flask import Blueprint, jsonify, request, response_helpers, make_response, send_file, g
+from flask import Blueprint, jsonify, request, make_response, send_file, g
 from sqlalchemy import func
 from database import db
 from models import (
     Department, UserProfile, CarbonTransaction, SustainabilityGoal,
-    CSRActivity, CSRParticipation, TrainingSession, TrainingParticipant,
+    CSRActivity, CSRParticipation, TrainingCompletion,
     ESGPolicy, PolicyAcknowledgement, Audit, ComplianceIssue, Category
 )
 from auth import token_required, require_role
@@ -104,17 +104,16 @@ def compute_department_scores(dept_id, weights=None):
     csr_score = round(min(100.0, (csr_part_users / dept_user_count) * 100.0), 1)
 
     # (b) Training Completion Rate
-    dept_trainings = TrainingSession.query.filter_by(department_id=dept_id).all()
-    if not dept_trainings:
+    dept_completions = TrainingCompletion.query.filter(
+        TrainingCompletion.user_id.in_(dept_user_ids)
+    ).all() if dept_user_ids else []
+
+    if not dept_completions:
         training_score = 100.0
     else:
-        total_assigned = 0
-        total_completed = 0
-        for ts in dept_trainings:
-            parts = TrainingParticipant.query.filter_by(training_id=ts.id).all()
-            total_assigned += len(parts)
-            total_completed += sum(1 for p in parts if p.status == 'Completed')
-        training_score = round((total_completed / max(1, total_assigned)) * 100.0, 1) if total_assigned > 0 else 100.0
+        total_assigned = len(dept_completions)
+        total_completed = sum(1 for c in dept_completions if c.status == 'Completed')
+        training_score = round((total_completed / max(1, total_assigned)) * 100.0, 1)
 
     soc_score = round(0.5 * csr_score + 0.5 * training_score, 1)
 
@@ -199,8 +198,8 @@ def seed_multi_department_scoring_data():
     try:
         from models import (
             Department, UserProfile, CarbonTransaction, Category,
-            EmissionFactor, CSRActivity, CSRParticipation, TrainingSession,
-            TrainingParticipant, ESGPolicy, PolicyAcknowledgement, Audit, ComplianceIssue
+            EmissionFactor, CSRActivity, CSRParticipation, TrainingCompletion,
+            ESGPolicy, PolicyAcknowledgement, Audit, ComplianceIssue
         )
 
         # 1. Create 3 distinct departments if they don't exist
@@ -243,24 +242,19 @@ def seed_multi_department_scoring_data():
             if not cat.id: db.session.add(cat); db.session.flush()
             if not ef.id: db.session.add(ef); db.session.flush()
 
-            tx1 = CarbonTransaction(department_id=so_dept.id, category_id=cat.id, emission_factor_id=ef.id, activity_amount=100, co2e=50.0, date=date_type(2026, 6, 1))
-            tx2 = CarbonTransaction(department_id=et_dept.id, category_id=cat.id, emission_factor_id=ef.id, activity_amount=800, co2e=400.0, date=date_type(2026, 6, 10))
-            tx3 = CarbonTransaction(department_id=hr_dept.id, category_id=cat.id, emission_factor_id=ef.id, activity_amount=200, co2e=100.0, date=date_type(2026, 6, 15))
+            tx1 = CarbonTransaction(department_id=so_dept.id, source='Electricity', quantity=100, emission_factor_id=ef.id, co2e=50.0, date=date_type(2026, 6, 1))
+            tx2 = CarbonTransaction(department_id=et_dept.id, source='Natural Gas', quantity=800, emission_factor_id=ef.id, co2e=400.0, date=date_type(2026, 6, 10))
+            tx3 = CarbonTransaction(department_id=hr_dept.id, source='Fleet', quantity=200, emission_factor_id=ef.id, co2e=100.0, date=date_type(2026, 6, 15))
             db.session.add_all([tx1, tx2, tx3])
             db.session.commit()
 
-        # 3. Seed Training Sessions & Participants
-        if TrainingSession.query.count() == 0:
-            t1 = TrainingSession(title='ISO 14001 Environmental Safety', department_id=so_dept.id, trainer='EcoCert Inc.', date=date_type(2026, 5, 10), status='Completed')
-            t2 = TrainingSession(title='Green Software Engineering', department_id=et_dept.id, trainer='TechGreen', date=date_type(2026, 6, 5), status='Completed')
-            db.session.add_all([t1, t2])
-            db.session.commit()
-
+        # 3. Seed Training Completions
+        if TrainingCompletion.query.count() == 0:
             admin_user = UserProfile.query.first()
             if admin_user:
-                p1 = TrainingParticipant(training_id=t1.id, user_id=admin_user.id, status='Completed')
-                p2 = TrainingParticipant(training_id=t2.id, user_id=admin_user.id, status='Registered')
-                db.session.add_all([p1, p2])
+                tc1 = TrainingCompletion(user_id=admin_user.id, training_name='ISO 14001 Environmental Safety', status='Completed', completion_date=date_type(2026, 5, 10))
+                tc2 = TrainingCompletion(user_id=admin_user.id, training_name='Green Software Engineering', status='Enrolled', completion_date=date_type(2026, 6, 5))
+                db.session.add_all([tc1, tc2])
                 db.session.commit()
 
         # 4. Seed Compliance Audits & Issues (varied overdue status)
