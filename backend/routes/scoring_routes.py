@@ -373,10 +373,20 @@ def get_fixed_report():
     report_type = request.args.get('type', 'summary')
     dept_id = request.args.get('department_id')
     user_id = request.args.get('user_id')
+    challenge_id = request.args.get('challenge_id')
+    category_id = request.args.get('category_id')
+    date_from_str = request.args.get('date_from')
+    date_to_str = request.args.get('date_to')
+
+    date_from = date_type.fromisoformat(date_from_str) if date_from_str else None
+    date_to = date_type.fromisoformat(date_to_str) if date_to_str else None
 
     if report_type == 'environmental':
         q = CarbonTransaction.query
         if dept_id: q = q.filter_by(department_id=int(dept_id))
+        if category_id: q = q.filter_by(category_id=int(category_id))
+        if date_from: q = q.filter(CarbonTransaction.date >= date_from)
+        if date_to: q = q.filter(CarbonTransaction.date <= date_to)
         txs = q.order_by(CarbonTransaction.date.desc()).all()
         return jsonify({
             'report_name': 'Environmental Emissions & Carbon Footprint Report',
@@ -388,6 +398,9 @@ def get_fixed_report():
     elif report_type == 'social':
         q = CSRParticipation.query
         if user_id: q = q.filter_by(user_id=user_id)
+        if challenge_id:
+            # Filter participations linked to this activity
+            q = q.filter_by(csr_activity_id=int(challenge_id))
         parts = q.order_by(CSRParticipation.joined_at.desc()).all()
         return jsonify({
             'report_name': 'Social Responsibility & Community Engagement Report',
@@ -398,6 +411,9 @@ def get_fixed_report():
 
     elif report_type == 'governance':
         q = ComplianceIssue.query
+        if user_id: q = q.filter_by(owner_id=user_id)
+        if date_from: q = q.filter(ComplianceIssue.due_date >= date_from)
+        if date_to: q = q.filter(ComplianceIssue.due_date <= date_to)
         issues = q.order_by(ComplianceIssue.due_date.asc()).all()
         return jsonify({
             'report_name': 'Governance Audits & Compliance Issues Report',
@@ -408,6 +424,8 @@ def get_fixed_report():
 
     else:  # summary
         depts = Department.query.all()
+        if dept_id:
+            depts = [d for d in depts if d.id == int(dept_id)]
         scores = [compute_department_scores(d.id) for d in depts if compute_department_scores(d.id)]
         return jsonify({
             'report_name': 'Executive ESG Performance Summary Report',
