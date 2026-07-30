@@ -397,8 +397,8 @@ def get_fixed_report():
         q = CSRParticipation.query
         if user_id: q = q.filter_by(user_id=user_id)
         if challenge_id:
-            q = q.filter_by(csr_activity_id=int(challenge_id))
-        parts = q.order_by(CSRParticipation.joined_at.desc()).all()
+            q = q.filter_by(activity_id=int(challenge_id))
+        parts = q.order_by(CSRParticipation.registered_at.desc()).all()
         return jsonify({
             'report_name': 'Social & Gamification Engagement Report',
             'generated_at': datetime.utcnow().isoformat(),
