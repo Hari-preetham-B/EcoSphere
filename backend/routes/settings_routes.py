@@ -9,6 +9,7 @@ settings_bp = Blueprint('settings', __name__)
 _DEFAULTS = {
     'auto_emission_calc': 'false',
     'require_proof_for_csr': 'false',
+    'badge_auto_award': 'true',
 }
 
 

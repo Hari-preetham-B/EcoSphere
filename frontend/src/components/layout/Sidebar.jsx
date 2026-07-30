@@ -21,6 +21,8 @@ import {
   FileCheck,
   ClipboardList,
   AlertTriangle,
+  Gift,
+  Medal,
 } from 'lucide-react'
 
 const Sidebar = () => {
@@ -28,6 +30,7 @@ const Sidebar = () => {
   const [envOpen, setEnvOpen] = useState(false)
   const [socialOpen, setSocialOpen] = useState(false)
   const [govOpen, setGovOpen] = useState(false)
+  const [gamOpen, setGamOpen] = useState(false)
 
   const canEditEnv = role === 'Admin' || role === 'ESG Manager'
   const isManager = role === 'Admin' || role === 'ESG Manager'
@@ -178,7 +181,31 @@ const Sidebar = () => {
               )}
             </div>
 
-            {renderLink({ name: 'Gamification', path: '/gamification', icon: Trophy })}
+            {/* Gamification – collapsible */}
+            <div>
+              <button
+                onClick={() => setGamOpen(o => !o)}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all group ${
+                  gamOpen ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Trophy className="w-4 h-4 transition-transform group-hover:scale-110" />
+                  <span>Gamification</span>
+                </div>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${gamOpen ? 'rotate-180 text-amber-400' : 'text-slate-600'}`} />
+              </button>
+
+              {gamOpen && (
+                <div className="ml-4 mt-1 space-y-0.5 border-l border-slate-800 pl-3">
+                  {renderLink({ name: 'Leaderboard', path: '/gamification', icon: Trophy })}
+                  {renderLink({ name: 'Challenges', path: '/gamification/challenges', icon: Target })}
+                  {renderLink({ name: 'Rewards Catalog', path: '/gamification/rewards', icon: Gift })}
+                  {renderLink({ name: 'Badges', path: '/gamification/badges', icon: Medal })}
+                </div>
+              )}
+            </div>
+
             {renderLink({ name: 'Reports', path: '/reports', icon: FileText })}
           </div>
         </div>

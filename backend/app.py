@@ -17,6 +17,7 @@ from routes.csr_routes import csr_bp
 from routes.diversity_routes import diversity_bp
 from routes.training_routes import training_bp
 from routes.governance_routes import governance_bp, seed_governance_data
+from routes.gamification_routes import gamification_bp, seed_gamification_data
 
 from sqlalchemy import text
 
@@ -24,6 +25,7 @@ def ensure_schema():
     try:
         with db.engine.begin() as conn:
             conn.execute(text("ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS points INT DEFAULT 0;"))
+            conn.execute(text("ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS lifetime_points_earned INT DEFAULT 0;"))
     except Exception as e:
         print(f"Schema migration note: {e}")
 
@@ -51,6 +53,7 @@ def create_app():
     app.register_blueprint(diversity_bp, url_prefix='/api/diversity')
     app.register_blueprint(training_bp, url_prefix='/api/trainings')
     app.register_blueprint(governance_bp, url_prefix='/api/governance')
+    app.register_blueprint(gamification_bp, url_prefix='/api/gamification')
 
     @app.route('/health', methods=['GET'])
     def health_check():
@@ -68,6 +71,7 @@ def create_app():
             seed_erp_records()
             seed_emission_factors()
             seed_governance_data()
+            seed_gamification_data()
         except Exception as e:
             print(f"Error initializing database tables: {e}")
 

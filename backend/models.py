@@ -8,12 +8,14 @@ class UserProfile(db.Model):
     email = db.Column(db.String(255), nullable=False, unique=True)
     full_name = db.Column(db.String(255), nullable=True)
     role = db.Column(db.String(50), nullable=False, default='Employee')  # Admin, ESG Manager, Employee
-    # SINGLE SHARED POINTS/XP BALANCE: used across CSR activity approvals, Gamification challenges, and Reward redemptions.
+    # SINGLE SHARED SPENDABLE BALANCE: incremented on awards, decremented on reward redemptions.
     points = db.Column(db.Integer, nullable=False, default=0)
+    # CUMULATIVE LIFETIME POINTS: only ever incremented (never decremented). Used for badge threshold checks.
+    lifetime_points_earned = db.Column(db.Integer, nullable=False, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    def __init__(self, id=None, email=None, full_name=None, role='Employee', points=0, created_at=None, updated_at=None, **kwargs):
+    def __init__(self, id=None, email=None, full_name=None, role='Employee', points=0, lifetime_points_earned=0, created_at=None, updated_at=None, **kwargs):
         super().__init__(**kwargs)
         if id is not None:
             self.id = id
@@ -25,6 +27,8 @@ class UserProfile(db.Model):
             self.role = role
         if points is not None:
             self.points = points
+        if lifetime_points_earned is not None:
+            self.lifetime_points_earned = lifetime_points_earned
         if created_at is not None:
             self.created_at = created_at
         if updated_at is not None:
@@ -37,6 +41,7 @@ class UserProfile(db.Model):
             'full_name': self.full_name or '',
             'role': self.role,
             'points': self.points or 0,
+            'lifetime_points_earned': self.lifetime_points_earned or 0,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
@@ -761,4 +766,254 @@ class ComplianceIssue(db.Model):
         }
 
 
+# ─── Gamification Module Models ──────────────────────────────────────────────
 
+class Challenge(db.Model):
+    __tablename__ = 'challenges'
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=True)
+    description = db.Column(db.Text, nullable=True)
+    xp = db.Column(db.Integer, nullable=False, default=50)
+    difficulty = db.Column(db.String(20), nullable=False, default='Easy')  # Easy, Medium, Hard
+    evidence_required = db.Column(db.Boolean, nullable=False, default=True)
+    deadline = db.Column(db.Date, nullable=True)
+    status = db.Column(db.String(20), nullable=False, default='Draft')  # Draft, Active, Under Review, Completed, Archived
+    created_by = db.Column(db.String(64), db.ForeignKey('user_profiles.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    category = db.relationship('Category', foreign_keys=[category_id])
+    creator = db.relationship('UserProfile', foreign_keys=[created_by])
+
+    def __init__(self, title=None, category_id=None, description=None, xp=50,
+                 difficulty='Easy', evidence_required=True, deadline=None,
+                 status='Draft', created_by=None, **kwargs):
+        super().__init__(**kwargs)
+        if title is not None:
+            self.title = title
+        self.category_id = category_id
+        if description is not None:
+            self.description = description
+        if xp is not None:
+            self.xp = xp
+        if difficulty is not None:
+            self.difficulty = difficulty
+        self.evidence_required = evidence_required
+        self.deadline = deadline
+        if status is not None:
+            self.status = status
+        self.created_by = created_by
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'category_id': self.category_id,
+            'category_name': self.category.name if self.category else None,
+            'description': self.description or '',
+            'xp': self.xp,
+            'difficulty': self.difficulty,
+            'evidence_required': self.evidence_required,
+            'deadline': self.deadline.isoformat() if self.deadline else None,
+            'status': self.status,
+            'created_by': self.created_by,
+            'creator_name': self.creator.full_name if self.creator else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+class ChallengeParticipation(db.Model):
+    __tablename__ = 'challenge_participations'
+
+    id = db.Column(db.Integer, primary_key=True)
+    challenge_id = db.Column(db.Integer, db.ForeignKey('challenges.id'), nullable=False)
+    user_id = db.Column(db.String(64), db.ForeignKey('user_profiles.id'), nullable=False)
+    status = db.Column(db.String(20), nullable=False, default='Joined')  # Joined, Submitted, Approved, Rejected
+    proof_url = db.Column(db.String(500), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    xp_awarded = db.Column(db.Integer, nullable=False, default=0)
+    joined_at = db.Column(db.DateTime, default=datetime.utcnow)
+    reviewed_at = db.Column(db.DateTime, nullable=True)
+
+    challenge = db.relationship('Challenge', foreign_keys=[challenge_id], backref='participations')
+    user = db.relationship('UserProfile', foreign_keys=[user_id])
+
+    def __init__(self, challenge_id=None, user_id=None, status='Joined',
+                 proof_url=None, notes=None, xp_awarded=0, **kwargs):
+        super().__init__(**kwargs)
+        if challenge_id is not None:
+            self.challenge_id = challenge_id
+        if user_id is not None:
+            self.user_id = user_id
+        if status is not None:
+            self.status = status
+        self.proof_url = proof_url
+        self.notes = notes
+        self.xp_awarded = xp_awarded
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'challenge_id': self.challenge_id,
+            'challenge_title': self.challenge.title if self.challenge else None,
+            'challenge_xp': self.challenge.xp if self.challenge else 0,
+            'user_id': self.user_id,
+            'user_name': self.user.full_name if self.user else 'Unknown',
+            'user_email': self.user.email if self.user else '',
+            'status': self.status,
+            'proof_url': self.proof_url or '',
+            'notes': self.notes or '',
+            'xp_awarded': self.xp_awarded,
+            'joined_at': self.joined_at.isoformat() if self.joined_at else None,
+            'reviewed_at': self.reviewed_at.isoformat() if self.reviewed_at else None,
+        }
+
+
+class Badge(db.Model):
+    __tablename__ = 'badges'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(150), nullable=False, unique=True)
+    description = db.Column(db.Text, nullable=True)
+    # unlock_rule_type: 'total_points' uses lifetime_points_earned, 'completed_challenges', 'completed_csr'
+    unlock_rule_type = db.Column(db.String(50), nullable=False, default='total_points')
+    unlock_rule_value = db.Column(db.Integer, nullable=False, default=100)
+    icon = db.Column(db.String(100), nullable=True)  # emoji or lucide icon name
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __init__(self, name=None, description=None, unlock_rule_type='total_points',
+                 unlock_rule_value=100, icon=None, **kwargs):
+        super().__init__(**kwargs)
+        if name is not None:
+            self.name = name
+        if description is not None:
+            self.description = description
+        if unlock_rule_type is not None:
+            self.unlock_rule_type = unlock_rule_type
+        if unlock_rule_value is not None:
+            self.unlock_rule_value = unlock_rule_value
+        self.icon = icon
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description or '',
+            'unlock_rule_type': self.unlock_rule_type,
+            'unlock_rule_value': self.unlock_rule_value,
+            'icon': self.icon or '🏅',
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class UserBadge(db.Model):
+    __tablename__ = 'user_badges'
+    __table_args__ = (db.UniqueConstraint('user_id', 'badge_id', name='uq_user_badge'),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String(64), db.ForeignKey('user_profiles.id'), nullable=False)
+    badge_id = db.Column(db.Integer, db.ForeignKey('badges.id'), nullable=False)
+    awarded_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('UserProfile', foreign_keys=[user_id])
+    badge = db.relationship('Badge', foreign_keys=[badge_id])
+
+    def __init__(self, user_id=None, badge_id=None, **kwargs):
+        super().__init__(**kwargs)
+        if user_id is not None:
+            self.user_id = user_id
+        if badge_id is not None:
+            self.badge_id = badge_id
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'user_name': self.user.full_name if self.user else 'Unknown',
+            'badge_id': self.badge_id,
+            'badge_name': self.badge.name if self.badge else None,
+            'badge_description': self.badge.description if self.badge else '',
+            'badge_icon': self.badge.icon if self.badge else '🏅',
+            'unlock_rule_type': self.badge.unlock_rule_type if self.badge else None,
+            'unlock_rule_value': self.badge.unlock_rule_value if self.badge else None,
+            'awarded_at': self.awarded_at.isoformat() if self.awarded_at else None,
+        }
+
+
+class Reward(db.Model):
+    __tablename__ = 'rewards'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    points_required = db.Column(db.Integer, nullable=False, default=100)
+    stock = db.Column(db.Integer, nullable=False, default=10)
+    status = db.Column(db.String(20), nullable=False, default='Active')  # Active, Inactive
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __init__(self, name=None, description=None, points_required=100,
+                 stock=10, status='Active', **kwargs):
+        super().__init__(**kwargs)
+        if name is not None:
+            self.name = name
+        if description is not None:
+            self.description = description
+        if points_required is not None:
+            self.points_required = points_required
+        if stock is not None:
+            self.stock = stock
+        if status is not None:
+            self.status = status
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description or '',
+            'points_required': self.points_required,
+            'stock': self.stock,
+            'status': self.status,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+class RewardRedemption(db.Model):
+    __tablename__ = 'reward_redemptions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    reward_id = db.Column(db.Integer, db.ForeignKey('rewards.id'), nullable=False)
+    user_id = db.Column(db.String(64), db.ForeignKey('user_profiles.id'), nullable=False)
+    points_spent = db.Column(db.Integer, nullable=False, default=0)
+    status = db.Column(db.String(20), nullable=False, default='Redeemed')  # Redeemed, Fulfilled
+    redeemed_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    reward = db.relationship('Reward', foreign_keys=[reward_id])
+    user = db.relationship('UserProfile', foreign_keys=[user_id])
+
+    def __init__(self, reward_id=None, user_id=None, points_spent=0, status='Redeemed', **kwargs):
+        super().__init__(**kwargs)
+        if reward_id is not None:
+            self.reward_id = reward_id
+        if user_id is not None:
+            self.user_id = user_id
+        if points_spent is not None:
+            self.points_spent = points_spent
+        if status is not None:
+            self.status = status
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'reward_id': self.reward_id,
+            'reward_name': self.reward.name if self.reward else None,
+            'user_id': self.user_id,
+            'user_name': self.user.full_name if self.user else 'Unknown',
+            'points_spent': self.points_spent,
+            'status': self.status,
+            'redeemed_at': self.redeemed_at.isoformat() if self.redeemed_at else None,
+        }

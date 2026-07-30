@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../lib/api'
-import { Settings as SettingsIcon, Zap, Server, Database, AlertCircle, Check } from 'lucide-react'
+import { Settings as SettingsIcon, Zap, Server, Database, AlertCircle, Check, Medal } from 'lucide-react'
 
 export default function Settings() {
   const { token, role } = useAuth()
@@ -15,6 +15,7 @@ export default function Settings() {
 
   const [autoCalc, setAutoCalc] = useState(false)
   const [requireProof, setRequireProof] = useState(false)
+  const [badgeAutoAward, setBadgeAutoAward] = useState(true)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -23,6 +24,7 @@ export default function Settings() {
       setSettings(data)
       setAutoCalc(data.auto_emission_calc === 'true')
       setRequireProof(data.require_proof_for_csr === 'true')
+      setBadgeAutoAward(data.badge_auto_award !== 'false')
     } catch (e) { setError(e.message) }
     finally { setLoading(false) }
   }, [token])
@@ -58,6 +60,23 @@ export default function Settings() {
     } catch (e) {
       setError(e.message)
       setRequireProof(!newVal)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleToggleBadgeAutoAward = async () => {
+    if (!isAdmin) return
+    const newVal = !badgeAutoAward
+    setBadgeAutoAward(newVal)
+    setSaving(true); setSaved(false); setError('')
+    try {
+      await api.put('/settings', token, { badge_auto_award: newVal ? 'true' : 'false' })
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+    } catch (e) {
+      setError(e.message)
+      setBadgeAutoAward(!newVal)
     } finally {
       setSaving(false)
     }
@@ -161,6 +180,43 @@ export default function Settings() {
 
         <p className="text-xs text-slate-500 px-1">
           Current value: <span className={`font-semibold font-mono ${requireProof ? 'text-emerald-400' : 'text-slate-400'}`}>{requireProof ? 'true' : 'false'}</span>
+        </p>
+      </div>
+
+      {/* Gamification Settings Card */}
+      <div className="glass-panel rounded-2xl border border-slate-800 p-6 space-y-5">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">Gamification Module</h2>
+
+        <div className="flex items-center justify-between p-4 rounded-xl bg-slate-900/60 border border-slate-800">
+          <div className="flex items-start gap-3">
+            <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 shrink-0 mt-0.5">
+              <Medal className="w-4 h-4 text-purple-400" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-slate-200">Badge Auto-Award</p>
+              <p className="text-xs text-slate-400 mt-0.5 max-w-sm leading-relaxed">
+                When enabled, badges are automatically awarded the moment an employee's progress satisfies a badge's unlock rule — immediately after any CSR or Challenge approval.
+                Point-based badges always use lifetime XP (never decremented by reward redemptions).
+              </p>
+              {!isAdmin && (
+                <p className="text-xs text-amber-400 mt-1.5 font-medium">Admin access required to change this setting.</p>
+              )}
+            </div>
+          </div>
+
+          <button
+            onClick={handleToggleBadgeAutoAward}
+            disabled={!isAdmin || saving}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none shrink-0 ml-6 ${
+              badgeAutoAward ? 'bg-purple-500' : 'bg-slate-700'
+            } ${(!isAdmin || saving) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          >
+            <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-sm ${badgeAutoAward ? 'translate-x-5.5' : 'translate-x-0.5'}`} />
+          </button>
+        </div>
+
+        <p className="text-xs text-slate-500 px-1">
+          Current value: <span className={`font-semibold font-mono ${badgeAutoAward ? 'text-purple-400' : 'text-slate-400'}`}>{badgeAutoAward ? 'true' : 'false'}</span>
         </p>
       </div>
 

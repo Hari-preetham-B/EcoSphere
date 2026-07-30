@@ -4,6 +4,11 @@ from database import db
 from models import CSRActivity, CSRParticipation, Category, Department, UserProfile, Setting
 from auth import token_required, require_role
 
+# Import badge auto-award helper (deferred to avoid circular imports)
+def _check_badges(user_id):
+    from routes.gamification_routes import check_and_award_badges
+    check_and_award_badges(user_id)
+
 csr_bp = Blueprint('csr', __name__)
 
 
@@ -210,15 +215,20 @@ def approve_participation(part_id):
         part.status = 'Approved'
         part.reviewed_at = datetime.utcnow()
 
-        # Award points to UserProfile (single shared points/XP balance)
+        # Award points to UserProfile (single shared spendable balance)
         reward = part.activity.points_reward if part.activity else 50
         part.points_awarded = reward
 
         user_prof = UserProfile.query.get(part.user_id)
         if user_prof:
+            # Increment BOTH spendable balance and non-decreasing lifetime balance
             user_prof.points = (user_prof.points or 0) + reward
+            user_prof.lifetime_points_earned = (user_prof.lifetime_points_earned or 0) + reward
 
         db.session.commit()
+
+        # Auto-award badges based on updated lifetime_points_earned and CSR count
+        _check_badges(part.user_id)
 
     return jsonify(part.to_dict()), 200
 

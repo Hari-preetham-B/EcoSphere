@@ -29,8 +29,12 @@ import PoliciesPage from './pages/governance/PoliciesPage'
 import AuditsPage from './pages/governance/AuditsPage'
 import ComplianceIssuesPage from './pages/governance/ComplianceIssuesPage'
 
+import GamificationDashboard from './pages/gamification/GamificationDashboard'
+import ChallengesPage from './pages/gamification/ChallengesPage'
+import RewardsPage from './pages/gamification/RewardsPage'
+import BadgesPage from './pages/gamification/BadgesPage'
+
 import {
-  GamificationPage,
   ReportsPage,
 } from './pages/Placeholders'
 
@@ -69,7 +73,12 @@ function App() {
               <Route path="/governance/audits" element={<AuditsPage />} />
               <Route path="/governance/issues" element={<ComplianceIssuesPage />} />
 
-              <Route path="/gamification" element={<GamificationPage />} />
+              {/* Gamification Module Routes */}
+              <Route path="/gamification" element={<GamificationDashboard />} />
+              <Route path="/gamification/challenges" element={<ChallengesPage />} />
+              <Route path="/gamification/rewards" element={<RewardsPage />} />
+              <Route path="/gamification/badges" element={<BadgesPage />} />
+
               <Route path="/reports" element={<ReportsPage />} />
               <Route path="/settings" element={<Settings />} />
 
