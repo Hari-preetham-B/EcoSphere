@@ -17,12 +17,17 @@ import {
   Zap,
   Target,
   FlaskConical,
+  HeartHandshake,
+  FileCheck,
+  ClipboardList,
+  AlertTriangle,
 } from 'lucide-react'
 
 const Sidebar = () => {
   const { role } = useAuth()
   const [envOpen, setEnvOpen] = useState(false)
   const [socialOpen, setSocialOpen] = useState(false)
+  const [govOpen, setGovOpen] = useState(false)
 
   const canEditEnv = role === 'Admin' || role === 'ESG Manager'
   const isManager = role === 'Admin' || role === 'ESG Manager'
@@ -147,7 +152,32 @@ const Sidebar = () => {
                 </div>
               )}
             </div>
-            {renderLink({ name: 'Governance', path: '/governance', icon: ShieldCheck })}
+
+            {/* Governance – collapsible */}
+            <div>
+              <button
+                onClick={() => setGovOpen(o => !o)}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all group ${
+                  govOpen ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <ShieldCheck className="w-4 h-4 transition-transform group-hover:scale-110" />
+                  <span>Governance</span>
+                </div>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${govOpen ? 'rotate-180 text-purple-400' : 'text-slate-600'}`} />
+              </button>
+
+              {govOpen && (
+                <div className="ml-4 mt-1 space-y-0.5 border-l border-slate-800 pl-3">
+                  {renderLink({ name: 'Governance Overview', path: '/governance', icon: ShieldCheck })}
+                  {renderLink({ name: 'ESG Policies', path: '/governance/policies', icon: FileCheck })}
+                  {renderLink({ name: 'Department Audits', path: '/governance/audits', icon: ClipboardList })}
+                  {renderLink({ name: 'Compliance Issues', path: '/governance/issues', icon: AlertTriangle })}
+                </div>
+              )}
+            </div>
+
             {renderLink({ name: 'Gamification', path: '/gamification', icon: Trophy })}
             {renderLink({ name: 'Reports', path: '/reports', icon: FileText })}
           </div>

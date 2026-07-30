@@ -24,8 +24,12 @@ import SocialApprovals from './pages/social/ParticipationApproval'
 import SocialDiversity from './pages/social/DiversityMetrics'
 import SocialTraining from './pages/social/TrainingTracking'
 
+import GovernanceDashboard from './pages/governance/GovernanceDashboard'
+import PoliciesPage from './pages/governance/PoliciesPage'
+import AuditsPage from './pages/governance/AuditsPage'
+import ComplianceIssuesPage from './pages/governance/ComplianceIssuesPage'
+
 import {
-  GovernancePage,
   GamificationPage,
   ReportsPage,
 } from './pages/Placeholders'
@@ -59,8 +63,12 @@ function App() {
               <Route path="/social/diversity" element={<SocialDiversity />} />
               <Route path="/social/training" element={<SocialTraining />} />
 
-              <Route path="/governance" element={<GovernancePage />} />
-              <Route path="/governance" element={<GovernancePage />} />
+              {/* Governance Module Routes */}
+              <Route path="/governance" element={<GovernanceDashboard />} />
+              <Route path="/governance/policies" element={<PoliciesPage />} />
+              <Route path="/governance/audits" element={<AuditsPage />} />
+              <Route path="/governance/issues" element={<ComplianceIssuesPage />} />
+
               <Route path="/gamification" element={<GamificationPage />} />
               <Route path="/reports" element={<ReportsPage />} />
               <Route path="/settings" element={<Settings />} />
