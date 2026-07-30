@@ -8,10 +8,12 @@ class UserProfile(db.Model):
     email = db.Column(db.String(255), nullable=False, unique=True)
     full_name = db.Column(db.String(255), nullable=True)
     role = db.Column(db.String(50), nullable=False, default='Employee')  # Admin, ESG Manager, Employee
+    # SINGLE SHARED POINTS/XP BALANCE: used across CSR activity approvals, Gamification challenges, and Reward redemptions.
+    points = db.Column(db.Integer, nullable=False, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    def __init__(self, id=None, email=None, full_name=None, role='Employee', created_at=None, updated_at=None, **kwargs):
+    def __init__(self, id=None, email=None, full_name=None, role='Employee', points=0, created_at=None, updated_at=None, **kwargs):
         super().__init__(**kwargs)
         if id is not None:
             self.id = id
@@ -21,6 +23,8 @@ class UserProfile(db.Model):
             self.full_name = full_name
         if role is not None:
             self.role = role
+        if points is not None:
+            self.points = points
         if created_at is not None:
             self.created_at = created_at
         if updated_at is not None:
@@ -32,8 +36,9 @@ class UserProfile(db.Model):
             'email': self.email,
             'full_name': self.full_name or '',
             'role': self.role,
+            'points': self.points or 0,
             'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
 
 class Department(db.Model):
@@ -338,4 +343,197 @@ class Setting(db.Model):
             'value': self.value,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
+
+
+# ─── Social Module Models ──────────────────────────────────────────────────
+
+class CSRActivity(db.Model):
+    __tablename__ = 'csr_activities'
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=True)
+    description = db.Column(db.Text, nullable=True)
+    department_id = db.Column(db.Integer, db.ForeignKey('departments.id'), nullable=True)
+    date = db.Column(db.Date, nullable=False)
+    points_reward = db.Column(db.Integer, nullable=False, default=50)
+    status = db.Column(db.String(20), nullable=False, default='Active')  # Active, Completed, Cancelled
+    created_by = db.Column(db.String(64), db.ForeignKey('user_profiles.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    category = db.relationship('Category', foreign_keys=[category_id])
+    department = db.relationship('Department', foreign_keys=[department_id])
+    creator = db.relationship('UserProfile', foreign_keys=[created_by])
+
+    def __init__(self, title=None, category_id=None, description=None, department_id=None,
+                 date=None, points_reward=50, status='Active', created_by=None, **kwargs):
+        super().__init__(**kwargs)
+        if title is not None:
+            self.title = title
+        self.category_id = category_id
+        if description is not None:
+            self.description = description
+        self.department_id = department_id
+        if date is not None:
+            self.date = date
+        if points_reward is not None:
+            self.points_reward = points_reward
+        if status is not None:
+            self.status = status
+        self.created_by = created_by
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'category_id': self.category_id,
+            'category_name': self.category.name if self.category else None,
+            'description': self.description or '',
+            'department_id': self.department_id,
+            'department_name': self.department.name if self.department else 'Company-wide',
+            'date': self.date.isoformat() if self.date else None,
+            'points_reward': self.points_reward,
+            'status': self.status,
+            'created_by': self.created_by,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class CSRParticipation(db.Model):
+    __tablename__ = 'csr_participations'
+
+    id = db.Column(db.Integer, primary_key=True)
+    activity_id = db.Column(db.Integer, db.ForeignKey('csr_activities.id'), nullable=False)
+    user_id = db.Column(db.String(64), db.ForeignKey('user_profiles.id'), nullable=False)
+    status = db.Column(db.String(20), nullable=False, default='Pending')  # Pending, Approved, Rejected
+    proof_url = db.Column(db.String(500), nullable=True)
+    points_awarded = db.Column(db.Integer, nullable=False, default=0)
+    notes = db.Column(db.Text, nullable=True)
+    registered_at = db.Column(db.DateTime, default=datetime.utcnow)
+    reviewed_at = db.Column(db.DateTime, nullable=True)
+
+    activity = db.relationship('CSRActivity', foreign_keys=[activity_id], backref='participations')
+    user = db.relationship('UserProfile', foreign_keys=[user_id])
+
+    def __init__(self, activity_id=None, user_id=None, status='Pending', proof_url=None,
+                 points_awarded=0, notes=None, **kwargs):
+        super().__init__(**kwargs)
+        if activity_id is not None:
+            self.activity_id = activity_id
+        if user_id is not None:
+            self.user_id = user_id
+        if status is not None:
+            self.status = status
+        if proof_url is not None:
+            self.proof_url = proof_url
+        if points_awarded is not None:
+            self.points_awarded = points_awarded
+        if notes is not None:
+            self.notes = notes
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'activity_id': self.activity_id,
+            'activity_title': self.activity.title if self.activity else None,
+            'user_id': self.user_id,
+            'user_name': self.user.full_name if self.user else 'Unknown',
+            'user_email': self.user.email if self.user else '',
+            'status': self.status,
+            'proof_url': self.proof_url or '',
+            'points_awarded': self.points_awarded,
+            'notes': self.notes or '',
+            'registered_at': self.registered_at.isoformat() if self.registered_at else None,
+            'reviewed_at': self.reviewed_at.isoformat() if self.reviewed_at else None,
+        }
+
+
+class DiversityMetric(db.Model):
+    __tablename__ = 'diversity_metrics'
+
+    id = db.Column(db.Integer, primary_key=True)
+    department_id = db.Column(db.Integer, db.ForeignKey('departments.id'), nullable=False)
+    year = db.Column(db.Integer, nullable=False)
+    male_pct = db.Column(db.Float, nullable=False, default=0)
+    female_pct = db.Column(db.Float, nullable=False, default=0)
+    other_pct = db.Column(db.Float, nullable=False, default=0)
+    age_under30 = db.Column(db.Integer, nullable=False, default=0)
+    age_30to50 = db.Column(db.Integer, nullable=False, default=0)
+    age_over50 = db.Column(db.Integer, nullable=False, default=0)
+    created_by = db.Column(db.String(64), db.ForeignKey('user_profiles.id'), nullable=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    department = db.relationship('Department', foreign_keys=[department_id])
+
+    def __init__(self, department_id=None, year=None, male_pct=0, female_pct=0, other_pct=0,
+                 age_under30=0, age_30to50=0, age_over50=0, created_by=None, **kwargs):
+        super().__init__(**kwargs)
+        if department_id is not None:
+            self.department_id = department_id
+        if year is not None:
+            self.year = year
+        self.male_pct = male_pct
+        self.female_pct = female_pct
+        self.other_pct = other_pct
+        self.age_under30 = age_under30
+        self.age_30to50 = age_30to50
+        self.age_over50 = age_over50
+        self.created_by = created_by
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'department_id': self.department_id,
+            'department_name': self.department.name if self.department else None,
+            'year': self.year,
+            'male_pct': self.male_pct,
+            'female_pct': self.female_pct,
+            'other_pct': self.other_pct,
+            'age_under30': self.age_under30,
+            'age_30to50': self.age_30to50,
+            'age_over50': self.age_over50,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+class TrainingCompletion(db.Model):
+    __tablename__ = 'training_completions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String(64), db.ForeignKey('user_profiles.id'), nullable=False)
+    training_name = db.Column(db.String(200), nullable=False)
+    completion_date = db.Column(db.Date, nullable=True)
+    status = db.Column(db.String(20), nullable=False, default='Enrolled')  # Enrolled, Completed, Failed
+    cert_url = db.Column(db.String(500), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('UserProfile', foreign_keys=[user_id])
+
+    def __init__(self, user_id=None, training_name=None, completion_date=None,
+                 status='Enrolled', cert_url=None, **kwargs):
+        super().__init__(**kwargs)
+        if user_id is not None:
+            self.user_id = user_id
+        if training_name is not None:
+            self.training_name = training_name
+        if completion_date is not None:
+            self.completion_date = completion_date
+        if status is not None:
+            self.status = status
+        if cert_url is not None:
+            self.cert_url = cert_url
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'user_name': self.user.full_name if self.user else 'Unknown',
+            'user_email': self.user.email if self.user else '',
+            'training_name': self.training_name,
+            'completion_date': self.completion_date.isoformat() if self.completion_date else None,
+            'status': self.status,
+            'cert_url': self.cert_url or '',
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
 

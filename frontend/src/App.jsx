@@ -18,8 +18,13 @@ import CarbonTransactions from './pages/environmental/CarbonTransactions'
 import SustainabilityGoals from './pages/environmental/SustainabilityGoals'
 import DepartmentTracking from './pages/environmental/DepartmentTracking'
 
+import SocialCSRActivities from './pages/social/CSRActivities'
+import SocialMyParticipation from './pages/social/MyParticipation'
+import SocialApprovals from './pages/social/ParticipationApproval'
+import SocialDiversity from './pages/social/DiversityMetrics'
+import SocialTraining from './pages/social/TrainingTracking'
+
 import {
-  SocialPage,
   GovernancePage,
   GamificationPage,
   ReportsPage,
@@ -46,7 +51,15 @@ function App() {
               <Route path="/environmental/goals" element={<SustainabilityGoals />} />
               <Route path="/environmental/departments" element={<DepartmentTracking />} />
 
-              <Route path="/social" element={<SocialPage />} />
+              {/* Social Module Routes */}
+              <Route path="/social" element={<SocialCSRActivities />} />
+              <Route path="/social/activities" element={<SocialCSRActivities />} />
+              <Route path="/social/my-participations" element={<SocialMyParticipation />} />
+              <Route path="/social/approvals" element={<SocialApprovals />} />
+              <Route path="/social/diversity" element={<SocialDiversity />} />
+              <Route path="/social/training" element={<SocialTraining />} />
+
+              <Route path="/governance" element={<GovernancePage />} />
               <Route path="/governance" element={<GovernancePage />} />
               <Route path="/gamification" element={<GamificationPage />} />
               <Route path="/reports" element={<ReportsPage />} />

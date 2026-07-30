@@ -13,6 +13,9 @@ from routes.sustainability_goal_routes import sustainability_goals_bp
 from routes.settings_routes import settings_bp
 from routes.erp_routes import erp_bp, seed_erp_records
 from routes.emission_factor_routes import emission_factors_bp, seed_emission_factors
+from routes.csr_routes import csr_bp
+from routes.diversity_routes import diversity_bp
+from routes.training_routes import training_bp
 
 def create_app():
     app = Flask(__name__)
@@ -34,6 +37,9 @@ def create_app():
     app.register_blueprint(sustainability_goals_bp, url_prefix='/api/sustainability-goals')
     app.register_blueprint(settings_bp, url_prefix='/api/settings')
     app.register_blueprint(erp_bp, url_prefix='/api/erp-records')
+    app.register_blueprint(csr_bp, url_prefix='/api/csr-activities')
+    app.register_blueprint(diversity_bp, url_prefix='/api/diversity')
+    app.register_blueprint(training_bp, url_prefix='/api/trainings')
 
     @app.route('/health', methods=['GET'])
     def health_check():

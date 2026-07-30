@@ -22,8 +22,10 @@ import {
 const Sidebar = () => {
   const { role } = useAuth()
   const [envOpen, setEnvOpen] = useState(false)
+  const [socialOpen, setSocialOpen] = useState(false)
 
   const canEditEnv = role === 'Admin' || role === 'ESG Manager'
+  const isManager = role === 'Admin' || role === 'ESG Manager'
 
   const mainNav = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -120,7 +122,31 @@ const Sidebar = () => {
               )}
             </div>
 
-            {renderLink({ name: 'Social', path: '/social', icon: Users })}
+            {/* Social – collapsible */}
+            <div>
+              <button
+                onClick={() => setSocialOpen(o => !o)}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all group ${
+                  socialOpen ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Users className="w-4 h-4 transition-transform group-hover:scale-110" />
+                  <span>Social</span>
+                </div>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${socialOpen ? 'rotate-180 text-emerald-400' : 'text-slate-600'}`} />
+              </button>
+
+              {socialOpen && (
+                <div className="ml-4 mt-1 space-y-0.5 border-l border-slate-800 pl-3">
+                  {renderLink({ name: 'CSR Activities', path: '/social/activities', icon: Users })}
+                  {renderLink({ name: 'My Participations', path: '/social/my-participations', icon: HeartHandshake })}
+                  {isManager && renderLink({ name: 'CSR Approvals', path: '/social/approvals', icon: ShieldCheck })}
+                  {renderLink({ name: 'Diversity & Inclusion', path: '/social/diversity', icon: Building2 })}
+                  {renderLink({ name: 'Training Tracking', path: '/social/training', icon: Trophy })}
+                </div>
+              )}
+            </div>
             {renderLink({ name: 'Governance', path: '/governance', icon: ShieldCheck })}
             {renderLink({ name: 'Gamification', path: '/gamification', icon: Trophy })}
             {renderLink({ name: 'Reports', path: '/reports', icon: FileText })}

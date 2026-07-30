@@ -14,6 +14,7 @@ export default function Settings() {
   const [saved, setSaved] = useState(false)
 
   const [autoCalc, setAutoCalc] = useState(false)
+  const [requireProof, setRequireProof] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -21,13 +22,14 @@ export default function Settings() {
       const data = await api.get('/settings', token)
       setSettings(data)
       setAutoCalc(data.auto_emission_calc === 'true')
+      setRequireProof(data.require_proof_for_csr === 'true')
     } catch (e) { setError(e.message) }
     finally { setLoading(false) }
   }, [token])
 
   useEffect(() => { load() }, [load])
 
-  const handleToggle = async () => {
+  const handleToggleAutoCalc = async () => {
     if (!isAdmin) return
     const newVal = !autoCalc
     setAutoCalc(newVal)
@@ -38,7 +40,24 @@ export default function Settings() {
       setTimeout(() => setSaved(false), 2500)
     } catch (e) {
       setError(e.message)
-      setAutoCalc(!newVal) // revert
+      setAutoCalc(!newVal)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleToggleRequireProof = async () => {
+    if (!isAdmin) return
+    const newVal = !requireProof
+    setRequireProof(newVal)
+    setSaving(true); setSaved(false); setError('')
+    try {
+      await api.put('/settings', token, { require_proof_for_csr: newVal ? 'true' : 'false' })
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+    } catch (e) {
+      setError(e.message)
+      setRequireProof(!newVal)
     } finally {
       setSaving(false)
     }
@@ -92,9 +111,8 @@ export default function Settings() {
             </div>
           </div>
 
-          {/* Toggle */}
           <button
-            onClick={handleToggle}
+            onClick={handleToggleAutoCalc}
             disabled={!isAdmin || saving}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none shrink-0 ml-6 ${
               autoCalc ? 'bg-emerald-500' : 'bg-slate-700'
@@ -106,6 +124,43 @@ export default function Settings() {
 
         <p className="text-xs text-slate-500 px-1">
           Current value: <span className={`font-semibold font-mono ${autoCalc ? 'text-emerald-400' : 'text-slate-400'}`}>{autoCalc ? 'true' : 'false'}</span>
+        </p>
+      </div>
+
+      {/* Social Settings Card */}
+      <div className="glass-panel rounded-2xl border border-slate-800 p-6 space-y-5">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">Social Module</h2>
+
+        {/* Require Proof for CSR Toggle */}
+        <div className="flex items-center justify-between p-4 rounded-xl bg-slate-900/60 border border-slate-800">
+          <div className="flex items-start gap-3">
+            <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 shrink-0 mt-0.5">
+              <SettingsIcon className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-slate-200">Require Proof for CSR Approval</p>
+              <p className="text-xs text-slate-400 mt-0.5 max-w-sm leading-relaxed">
+                When enabled, managers cannot approve an employee CSR participation record or award Points/XP unless a valid verification proof file (Image or PDF) has been uploaded.
+              </p>
+              {!isAdmin && (
+                <p className="text-xs text-amber-400 mt-1.5 font-medium">Admin access required to change this setting.</p>
+              )}
+            </div>
+          </div>
+
+          <button
+            onClick={handleToggleRequireProof}
+            disabled={!isAdmin || saving}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none shrink-0 ml-6 ${
+              requireProof ? 'bg-emerald-500' : 'bg-slate-700'
+            } ${(!isAdmin || saving) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          >
+            <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-sm ${requireProof ? 'translate-x-5.5' : 'translate-x-0.5'}`} />
+          </button>
+        </div>
+
+        <p className="text-xs text-slate-500 px-1">
+          Current value: <span className={`font-semibold font-mono ${requireProof ? 'text-emerald-400' : 'text-slate-400'}`}>{requireProof ? 'true' : 'false'}</span>
         </p>
       </div>
 
