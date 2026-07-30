@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
+import { api } from '../../lib/api'
 import {
   ShieldCheck,
   FileCheck,
@@ -8,28 +10,19 @@ import {
   Clock,
   CheckCircle2,
   Building2,
-  ArrowRight,
-  Send,
-  AlertCircle,
-  Plus
+  ArrowRight
 } from 'lucide-react'
 
 const GovernanceDashboard = () => {
+  const { token } = useAuth()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true)
-      const token = localStorage.getItem('token')
-      const response = await fetch('/api/governance/dashboard', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (!response.ok) {
-        throw new Error('Failed to load governance dashboard metrics')
-      }
-      const json = await response.json()
+      const json = await api.get('/governance/dashboard', token)
       setData(json)
     } catch (err) {
       console.error(err)
@@ -37,11 +30,11 @@ const GovernanceDashboard = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [token])
 
   useEffect(() => {
     fetchDashboardData()
-  }, [])
+  }, [fetchDashboardData])
 
   if (loading) {
     return (

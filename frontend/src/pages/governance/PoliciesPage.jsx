@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { api } from '../../lib/api'
 import {
   FileCheck,
   Plus,
@@ -9,14 +10,12 @@ import {
   Building2,
   Users,
   Search,
-  Filter,
   X,
-  AlertCircle,
   Sparkles
 } from 'lucide-react'
 
 const PoliciesPage = () => {
-  const { role } = useAuth()
+  const { role, token } = useAuth()
   const isManager = role === 'Admin' || role === 'ESG Manager'
 
   const [policies, setPolicies] = useState([])
@@ -46,19 +45,14 @@ const PoliciesPage = () => {
   const [ackLoading, setAckLoading] = useState(false)
   const [remindMessage, setRemindMessage] = useState('')
 
-  const fetchPolicies = async () => {
+  const fetchPolicies = useCallback(async () => {
     try {
       setLoading(true)
-      const token = localStorage.getItem('token')
-      let url = '/api/governance/policies?'
+      let url = '/governance/policies?'
       if (selectedDept) url += `department_id=${selectedDept}&`
       if (selectedStatus) url += `status=${selectedStatus}&`
 
-      const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (!res.ok) throw new Error('Failed to fetch ESG policies')
-      const data = await res.json()
+      const data = await api.get(url, token)
       setPolicies(data)
     } catch (err) {
       console.error(err)
@@ -66,39 +60,25 @@ const PoliciesPage = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedDept, selectedStatus, token])
 
-  const fetchDepartments = async () => {
+  const fetchDepartments = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token')
-      const res = await fetch('/api/departments', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setDepartments(data)
-      }
+      const data = await api.get('/departments', token)
+      setDepartments(data)
     } catch (e) {
       console.error(e)
     }
-  }
+  }, [token])
 
   useEffect(() => {
     fetchPolicies()
     fetchDepartments()
-  }, [selectedDept, selectedStatus])
+  }, [fetchPolicies, fetchDepartments])
 
   const handleAcknowledge = async (policyId) => {
     try {
-      const token = localStorage.getItem('token')
-      const res = await fetch(`/api/governance/policies/${policyId}/acknowledge`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        }
-      })
-      if (!res.ok) throw new Error('Failed to acknowledge policy')
+      await api.post(`/governance/policies/${policyId}/acknowledge`, token)
       fetchPolicies()
     } catch (err) {
       alert(err.message)
@@ -110,12 +90,7 @@ const PoliciesPage = () => {
     setAckLoading(true)
     setRemindMessage('')
     try {
-      const token = localStorage.getItem('token')
-      const res = await fetch(`/api/governance/policies/${policy.id}/acknowledgements`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (!res.ok) throw new Error('Failed to fetch policy acknowledgement records')
-      const data = await res.json()
+      const data = await api.get(`/governance/policies/${policy.id}/acknowledgements`, token)
       setAckDetails(data)
     } catch (err) {
       console.error(err)
@@ -127,13 +102,7 @@ const PoliciesPage = () => {
   const handleSendReminderStub = async () => {
     if (!activeAckPolicy) return
     try {
-      const token = localStorage.getItem('token')
-      const res = await fetch(`/api/governance/policies/${activeAckPolicy.id}/remind`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (!res.ok) throw new Error('Failed to trigger policy reminder stub')
-      const json = await res.json()
+      const json = await api.post(`/governance/policies/${activeAckPolicy.id}/remind`, token)
       setRemindMessage(json.message)
       // Refresh ack list
       openAckModal(activeAckPolicy)
@@ -147,19 +116,7 @@ const PoliciesPage = () => {
     if (!formData.title.trim()) return
     try {
       setSubmitting(true)
-      const token = localStorage.getItem('token')
-      const res = await fetch('/api/governance/policies', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      })
-      if (!res.ok) {
-        const errJson = await res.json()
-        throw new Error(errJson.error || 'Failed to create ESG Policy')
-      }
+      await api.post('/governance/policies', token, formData)
       setShowCreateModal(false)
       setFormData({
         title: '',

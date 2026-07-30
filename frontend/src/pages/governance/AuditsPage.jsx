@@ -1,20 +1,19 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { api } from '../../lib/api'
 import {
   ClipboardList,
   Plus,
   Building2,
   Calendar,
   UserCheck,
-  FileText,
   AlertTriangle,
   Search,
-  X,
-  CheckCircle2
+  X
 } from 'lucide-react'
 
 const AuditsPage = () => {
-  const { role } = useAuth()
+  const { role, token } = useAuth()
   const isManager = role === 'Admin' || role === 'ESG Manager'
 
   const [audits, setAudits] = useState([])
@@ -37,18 +36,13 @@ const AuditsPage = () => {
   })
   const [submitting, setSubmitting] = useState(false)
 
-  const fetchAudits = async () => {
+  const fetchAudits = useCallback(async () => {
     try {
       setLoading(true)
-      const token = localStorage.getItem('token')
-      let url = '/api/governance/audits?'
+      let url = '/governance/audits?'
       if (selectedDept) url += `department_id=${selectedDept}&`
 
-      const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (!res.ok) throw new Error('Failed to fetch audit logs')
-      const data = await res.json()
+      const data = await api.get(url, token)
       setAudits(data)
     } catch (err) {
       console.error(err)
@@ -56,49 +50,31 @@ const AuditsPage = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedDept, token])
 
-  const fetchDepartments = async () => {
+  const fetchDepartments = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token')
-      const res = await fetch('/api/departments', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setDepartments(data)
-        if (data.length > 0 && !formData.department_id) {
-          setFormData(prev => ({ ...prev, department_id: data[0].id }))
-        }
+      const data = await api.get('/departments', token)
+      setDepartments(data)
+      if (data.length > 0 && !formData.department_id) {
+        setFormData(prev => ({ ...prev, department_id: data[0].id }))
       }
     } catch (e) {
       console.error(e)
     }
-  }
+  }, [token, formData.department_id])
 
   useEffect(() => {
     fetchAudits()
     fetchDepartments()
-  }, [selectedDept])
+  }, [fetchAudits, fetchDepartments])
 
   const handleCreateAudit = async (e) => {
     e.preventDefault()
     if (!formData.title || !formData.auditor_name || !formData.department_id) return
     try {
       setSubmitting(true)
-      const token = localStorage.getItem('token')
-      const res = await fetch('/api/governance/audits', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      })
-      if (!res.ok) {
-        const errJson = await res.json()
-        throw new Error(errJson.error || 'Failed to log audit')
-      }
+      await api.post('/governance/audits', token, formData)
       setShowModal(false)
       setFormData({
         title: '',

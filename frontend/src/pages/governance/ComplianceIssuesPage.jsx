@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { api } from '../../lib/api'
 import {
   AlertTriangle,
   Plus,
@@ -8,15 +9,12 @@ import {
   UserCheck,
   Building2,
   CheckCircle2,
-  Filter,
   Search,
-  X,
-  FileText,
-  AlertCircle
+  X
 } from 'lucide-react'
 
 const ComplianceIssuesPage = () => {
-  const { role } = useAuth()
+  const { role, token } = useAuth()
   const isManager = role === 'Admin' || role === 'ESG Manager'
   const location = useLocation()
 
@@ -24,7 +22,6 @@ const ComplianceIssuesPage = () => {
   const [audits, setAudits] = useState([])
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
 
   // Filters
   const [activeTab, setActiveTab] = useState('all') // 'all', 'overdue', 'high_critical', 'open', 'resolved'
@@ -56,47 +53,38 @@ const ComplianceIssuesPage = () => {
     }
   }, [location.search])
 
-  const fetchIssues = async () => {
+  const fetchIssues = useCallback(async () => {
     try {
       setLoading(true)
-      const token = localStorage.getItem('token')
-      let url = '/api/governance/issues?'
+      let url = '/governance/issues?'
       if (activeTab === 'overdue') url += 'overdue_only=true&'
       if (activeTab === 'open') url += 'status=Open&'
       if (activeTab === 'resolved') url += 'status=Resolved&'
 
-      const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (!res.ok) throw new Error('Failed to fetch compliance issues')
-      const data = await res.json()
+      const data = await api.get(url, token)
       setIssues(data)
     } catch (err) {
       console.error(err)
-      setError(err.message)
     } finally {
       setLoading(false)
     }
-  }
+  }, [activeTab, token])
 
-  const fetchMetadata = async () => {
+  const fetchMetadata = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token')
-      const [auditsRes, usersRes] = await Promise.all([
-        fetch('/api/governance/audits', { headers: { Authorization: `Bearer ${token}` } }),
-        fetch('/api/users', { headers: { Authorization: `Bearer ${token}` } })
+      const [aData, uData] = await Promise.all([
+        api.get('/governance/audits', token),
+        api.get('/users', token)
       ])
 
-      if (auditsRes.ok) {
-        const aData = await auditsRes.json()
+      if (aData) {
         setAudits(aData)
         if (aData.length > 0 && !formData.audit_id) {
           setFormData(prev => ({ ...prev, audit_id: aData[0].id }))
         }
       }
 
-      if (usersRes.ok) {
-        const uData = await usersRes.json()
+      if (uData) {
         setUsers(uData)
         if (uData.length > 0 && !formData.owner_id) {
           setFormData(prev => ({ ...prev, owner_id: uData[0].id }))
@@ -105,34 +93,22 @@ const ComplianceIssuesPage = () => {
     } catch (e) {
       console.error(e)
     }
-  }
+  }, [token, formData.audit_id, formData.owner_id])
 
   useEffect(() => {
     fetchIssues()
-  }, [activeTab])
+  }, [fetchIssues])
 
   useEffect(() => {
     fetchMetadata()
-  }, [])
+  }, [fetchMetadata])
 
   const handleCreateIssue = async (e) => {
     e.preventDefault()
     if (!formData.audit_id || !formData.owner_id || !formData.due_date || !formData.description) return
     try {
       setSubmitting(true)
-      const token = localStorage.getItem('token')
-      const res = await fetch('/api/governance/issues', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      })
-      if (!res.ok) {
-        const errJson = await res.json()
-        throw new Error(errJson.error || 'Failed to log compliance issue')
-      }
+      await api.post('/governance/issues', token, formData)
       setShowCreateModal(false)
       setFormData({
         audit_id: audits[0]?.id || '',
@@ -156,19 +132,10 @@ const ComplianceIssuesPage = () => {
     if (!selectedIssue) return
     try {
       setSubmitting(true)
-      const token = localStorage.getItem('token')
-      const res = await fetch(`/api/governance/issues/${selectedIssue.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          status: updateStatus,
-          resolution_notes: resolutionNotes
-        })
+      await api.put(`/governance/issues/${selectedIssue.id}`, token, {
+        status: updateStatus,
+        resolution_notes: resolutionNotes
       })
-      if (!res.ok) throw new Error('Failed to update issue status')
       setSelectedIssue(null)
       fetchIssues()
     } catch (err) {
