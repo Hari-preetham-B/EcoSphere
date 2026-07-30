@@ -364,72 +364,76 @@ def get_organization_score():
 @scoring_bp.route('/reports/fixed', methods=['GET'])
 @token_required
 def get_fixed_report():
-    report_type = request.args.get('type', 'summary')
-    module_filter = request.args.get('module')  # Environmental, Social, Governance, Gamification
-    dept_id = request.args.get('department_id')
-    user_id = request.args.get('user_id')
-    challenge_id = request.args.get('challenge_id')
-    category_id = request.args.get('category_id')
-    date_from_str = request.args.get('date_from')
-    date_to_str = request.args.get('date_to')
+    try:
+        report_type = request.args.get('type', 'summary')
+        module_filter = request.args.get('module')  # Environmental, Social, Governance, Gamification
+        dept_id = request.args.get('department_id')
+        user_id = request.args.get('user_id')
+        challenge_id = request.args.get('challenge_id')
+        category_id = request.args.get('category_id')
+        date_from_str = request.args.get('date_from')
+        date_to_str = request.args.get('date_to')
 
-    date_from = date_type.fromisoformat(date_from_str) if date_from_str else None
-    date_to = date_type.fromisoformat(date_to_str) if date_to_str else None
+        date_from = date_type.fromisoformat(date_from_str) if date_from_str else None
+        date_to = date_type.fromisoformat(date_to_str) if date_to_str else None
 
-    # Determine effective report target based on module_filter or report_type
-    target_module = module_filter.lower() if module_filter else report_type.lower()
+        # Determine effective report target based on module_filter or report_type
+        target_module = module_filter.lower() if module_filter else report_type.lower()
 
-    if target_module in ['environmental', 'env']:
-        q = CarbonTransaction.query
-        if dept_id: q = q.filter_by(department_id=int(dept_id))
-        if category_id: q = q.filter_by(category_id=int(category_id))
-        if date_from: q = q.filter(CarbonTransaction.date >= date_from)
-        if date_to: q = q.filter(CarbonTransaction.date <= date_to)
-        txs = q.order_by(CarbonTransaction.date.desc()).all()
-        return jsonify({
-            'report_name': 'Environmental Emissions & Carbon Footprint Report',
-            'generated_at': datetime.utcnow().isoformat(),
-            'record_count': len(txs),
-            'data': [t.to_dict() for t in txs]
-        }), 200
+        if target_module in ['environmental', 'env']:
+            q = CarbonTransaction.query
+            if dept_id: q = q.filter_by(department_id=int(dept_id))
+            if category_id: q = q.filter_by(category_id=int(category_id))
+            if date_from: q = q.filter(CarbonTransaction.date >= date_from)
+            if date_to: q = q.filter(CarbonTransaction.date <= date_to)
+            txs = q.order_by(CarbonTransaction.date.desc()).all()
+            return jsonify({
+                'report_name': 'Environmental Emissions & Carbon Footprint Report',
+                'generated_at': datetime.utcnow().isoformat(),
+                'record_count': len(txs),
+                'data': [t.to_dict() for t in txs]
+            }), 200
 
-    elif target_module in ['social', 'gamification']:
-        q = CSRParticipation.query
-        if user_id: q = q.filter_by(user_id=user_id)
-        if challenge_id:
-            q = q.filter_by(activity_id=int(challenge_id))
-        parts = q.order_by(CSRParticipation.registered_at.desc()).all()
-        return jsonify({
-            'report_name': 'Social & Gamification Engagement Report',
-            'generated_at': datetime.utcnow().isoformat(),
-            'record_count': len(parts),
-            'data': [p.to_dict() for p in parts]
-        }), 200
+        elif target_module in ['social', 'gamification']:
+            q = CSRParticipation.query
+            if user_id: q = q.filter_by(user_id=user_id)
+            if challenge_id:
+                q = q.filter_by(activity_id=int(challenge_id))
+            parts = q.order_by(CSRParticipation.registered_at.desc()).all()
+            return jsonify({
+                'report_name': 'Social & Gamification Engagement Report',
+                'generated_at': datetime.utcnow().isoformat(),
+                'record_count': len(parts),
+                'data': [p.to_dict() for p in parts]
+            }), 200
 
-    elif target_module in ['governance', 'gov']:
-        q = ComplianceIssue.query
-        if user_id: q = q.filter_by(owner_id=user_id)
-        if date_from: q = q.filter(ComplianceIssue.due_date >= date_from)
-        if date_to: q = q.filter(ComplianceIssue.due_date <= date_to)
-        issues = q.order_by(ComplianceIssue.due_date.asc()).all()
-        return jsonify({
-            'report_name': 'Governance Audits & Compliance Issues Report',
-            'generated_at': datetime.utcnow().isoformat(),
-            'record_count': len(issues),
-            'data': [i.to_dict() for i in issues]
-        }), 200
+        elif target_module in ['governance', 'gov']:
+            q = ComplianceIssue.query
+            if user_id: q = q.filter_by(owner_id=user_id)
+            if date_from: q = q.filter(ComplianceIssue.due_date >= date_from)
+            if date_to: q = q.filter(ComplianceIssue.due_date <= date_to)
+            issues = q.order_by(ComplianceIssue.due_date.asc()).all()
+            return jsonify({
+                'report_name': 'Governance Audits & Compliance Issues Report',
+                'generated_at': datetime.utcnow().isoformat(),
+                'record_count': len(issues),
+                'data': [i.to_dict() for i in issues]
+            }), 200
 
-    else:  # summary / overall
-        depts = Department.query.all()
-        if dept_id:
-            depts = [d for d in depts if d.id == int(dept_id)]
-        scores = [compute_department_scores(d.id) for d in depts if compute_department_scores(d.id)]
-        return jsonify({
-            'report_name': 'Executive ESG Performance Summary Report',
-            'generated_at': datetime.utcnow().isoformat(),
-            'record_count': len(scores),
-            'data': scores
-        }), 200
+        else:  # summary / overall
+            depts = Department.query.all()
+            if dept_id:
+                depts = [d for d in depts if d.id == int(dept_id)]
+            scores = [compute_department_scores(d.id) for d in depts if compute_department_scores(d.id)]
+            return jsonify({
+                'report_name': 'Executive ESG Performance Summary Report',
+                'generated_at': datetime.utcnow().isoformat(),
+                'record_count': len(scores),
+                'data': scores
+            }), 200
+    except Exception as e:
+        print(f"Error generating fixed report: {e}")
+        return jsonify({'error': 'Failed to generate report', 'details': str(e)}), 500
 
 
 # ─── Report Export (PDF, Excel, CSV) ──────────────────────────────────────────
