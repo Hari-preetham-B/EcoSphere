@@ -23,6 +23,7 @@ import {
   AlertTriangle,
   Gift,
   Medal,
+  BarChart3,
 } from 'lucide-react'
 
 const Sidebar = () => {
@@ -121,7 +122,8 @@ const Sidebar = () => {
 
               {envOpen && (
                 <div className="ml-4 mt-1 space-y-0.5 border-l border-slate-800 pl-3">
-                  {renderLink({ name: 'Dashboard', path: '/environmental', icon: Leaf })}
+                  {renderLink({ name: 'Executive Dashboard', path: '/scoring', icon: BarChart3 })}
+                  {renderLink({ name: 'Environmental', path: '/environmental', icon: Leaf })}
                   {renderLink({ name: 'Transactions', path: '/environmental/transactions', icon: Zap })}
                   {renderLink({ name: 'Goals', path: '/environmental/goals', icon: Target })}
                   {renderLink({ name: 'By Department', path: '/environmental/departments', icon: Building2 })}

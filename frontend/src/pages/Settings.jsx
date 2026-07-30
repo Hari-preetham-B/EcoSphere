@@ -17,6 +17,10 @@ export default function Settings() {
   const [requireProof, setRequireProof] = useState(false)
   const [badgeAutoAward, setBadgeAutoAward] = useState(true)
 
+  const [wEnv, setWEnv] = useState('0.40')
+  const [wSoc, setWSoc] = useState('0.30')
+  const [wGov, setWGov] = useState('0.30')
+
   const load = useCallback(async () => {
     setLoading(true)
     try {
@@ -25,6 +29,9 @@ export default function Settings() {
       setAutoCalc(data.auto_emission_calc === 'true')
       setRequireProof(data.require_proof_for_csr === 'true')
       setBadgeAutoAward(data.badge_auto_award !== 'false')
+      if (data.weight_env) setWEnv(data.weight_env)
+      if (data.weight_soc) setWSoc(data.weight_soc)
+      if (data.weight_gov) setWGov(data.weight_gov)
     } catch (e) { setError(e.message) }
     finally { setLoading(false) }
   }, [token])
@@ -77,6 +84,25 @@ export default function Settings() {
     } catch (e) {
       setError(e.message)
       setBadgeAutoAward(!newVal)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleSaveWeights = async (e) => {
+    e.preventDefault()
+    if (!isAdmin) return
+    setSaving(true); setSaved(false); setError('')
+    try {
+      await api.put('/settings', token, {
+        weight_env: wEnv,
+        weight_soc: wSoc,
+        weight_gov: wGov,
+      })
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+    } catch (err) {
+      setError(err.message)
     } finally {
       setSaving(false)
     }
@@ -181,6 +207,51 @@ export default function Settings() {
         <p className="text-xs text-slate-500 px-1">
           Current value: <span className={`font-semibold font-mono ${requireProof ? 'text-emerald-400' : 'text-slate-400'}`}>{requireProof ? 'true' : 'false'}</span>
         </p>
+
+        {/* ESG Pillar Weights Sub-Card */}
+        <div className="pt-4 border-t border-slate-800 space-y-3">
+          <p className="text-xs font-bold text-slate-200">ESG Score Pillar Weights (Configurable per Organization)</p>
+          <p className="text-xs text-slate-400">Controls the relative weighting used when computing Department & Organization Total ESG Scores.</p>
+
+          <form onSubmit={handleSaveWeights} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-[11px] font-semibold text-emerald-400 mb-1">Environmental Weight (0.0 - 1.0)</label>
+              <input
+                disabled={!isAdmin}
+                type="number" step="0.05" min="0" max="1"
+                value={wEnv} onChange={(e) => setWEnv(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3 py-2 font-mono focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-sky-400 mb-1">Social Weight (0.0 - 1.0)</label>
+              <input
+                disabled={!isAdmin}
+                type="number" step="0.05" min="0" max="1"
+                value={wSoc} onChange={(e) => setWSoc(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3 py-2 font-mono focus:outline-none focus:border-sky-500"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-purple-400 mb-1">Governance Weight (0.0 - 1.0)</label>
+              <input
+                disabled={!isAdmin}
+                type="number" step="0.05" min="0" max="1"
+                value={wGov} onChange={(e) => setWGov(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3 py-2 font-mono focus:outline-none focus:border-purple-500"
+              />
+            </div>
+            {isAdmin && (
+              <div className="sm:col-span-3 flex justify-end pt-1">
+                <button
+                  type="submit" disabled={saving}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-600/30">
+                  {saving ? 'Saving...' : 'Save Pillar Weights'}
+                </button>
+              </div>
+            )}
+          </form>
+        </div>
       </div>
 
       {/* Gamification Settings Card */}

@@ -34,9 +34,8 @@ import ChallengesPage from './pages/gamification/ChallengesPage'
 import RewardsPage from './pages/gamification/RewardsPage'
 import BadgesPage from './pages/gamification/BadgesPage'
 
-import {
-  ReportsPage,
-} from './pages/Placeholders'
+import OrganizationDashboard from './pages/scoring/OrganizationDashboard'
+import ReportsPage from './pages/scoring/ReportsPage'
 
 function App() {
   return (
@@ -79,6 +78,8 @@ function App() {
               <Route path="/gamification/rewards" element={<RewardsPage />} />
               <Route path="/gamification/badges" element={<BadgesPage />} />
 
+              {/* Scoring & Executive Dashboard Module Routes */}
+              <Route path="/scoring" element={<OrganizationDashboard />} />
               <Route path="/reports" element={<ReportsPage />} />
               <Route path="/settings" element={<Settings />} />
 
