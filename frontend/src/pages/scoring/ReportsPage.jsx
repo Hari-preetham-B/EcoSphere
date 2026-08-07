@@ -88,7 +88,8 @@ const ReportsPage = () => {
     if (!reportData || !reportData.data) return
     try {
       setExporting(true)
-      const res = await fetch(`http://localhost:5000/api/scoring/reports/export`, {
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
+      const res = await fetch(`${API_BASE}/scoring/reports/export`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
