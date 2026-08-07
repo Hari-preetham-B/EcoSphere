@@ -27,9 +27,10 @@ import {
   Bell,
   BellRing,
   Sliders,
+  X,
 } from 'lucide-react'
 
-const Sidebar = () => {
+const Sidebar = ({ mobileMenuOpen, setMobileMenuOpen }) => {
   const { role } = useAuth()
   const [envOpen, setEnvOpen] = useState(false)
   const [socialOpen, setSocialOpen] = useState(false)
@@ -39,27 +40,9 @@ const Sidebar = () => {
   const canEditEnv = role === 'Admin' || role === 'ESG Manager'
   const isManager = role === 'Admin' || role === 'ESG Manager'
 
-  const mainNav = [
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Environmental', path: '/environmental', icon: Leaf },
-    { name: 'Social', path: '/social', icon: Users },
-    { name: 'Governance', path: '/governance', icon: ShieldCheck },
-    { name: 'Gamification', path: '/gamification', icon: Trophy },
-    { name: 'Reports', path: '/reports', icon: FileText },
-  ]
-
-  const adminNav = [
-    { name: 'Departments', path: '/departments', icon: Building2 },
-    { name: 'Categories', path: '/categories', icon: Tags },
-    { name: 'User & Roles', path: '/users', icon: UserCog },
-  ]
-
-  const systemNav = [
-    { name: 'Notifications', path: '/notifications', icon: Bell },
-    { name: 'Notification Settings', path: '/settings/notifications', icon: BellRing, adminOnly: true },
-    { name: 'ESG Configuration', path: '/settings/esg', icon: Sliders, adminOnly: true },
-    { name: 'Settings', path: '/settings', icon: Settings },
-  ]
+  const handleNavClick = () => {
+    if (setMobileMenuOpen) setMobileMenuOpen(false)
+  }
 
   const renderLink = (item) => {
     const Icon = item.icon
@@ -67,6 +50,7 @@ const Sidebar = () => {
       <NavLink
         key={item.path}
         to={item.path}
+        onClick={handleNavClick}
         className={({ isActive }) =>
           `flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all group ${
             isActive
@@ -85,21 +69,45 @@ const Sidebar = () => {
   }
 
   return (
-    <aside className="w-64 bg-slate-950/90 border-r border-slate-800/80 flex flex-col h-screen sticky top-0 shrink-0 select-none">
-      {/* Brand Header */}
-      <div className="p-5 border-b border-slate-800/80 flex items-center gap-3">
-        <div className="w-10 h-10 bg-gradient-to-tr from-emerald-600 to-teal-400 rounded-xl flex items-center justify-center shadow-md shadow-emerald-500/20">
-          <Leaf className="w-5 h-5 text-slate-950" />
+    <>
+      {/* Mobile Backdrop Overlay */}
+      {mobileMenuOpen && (
+        <div
+          onClick={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40 lg:hidden transition-opacity"
+        />
+      )}
+
+      <aside
+        className={`w-64 bg-slate-950/95 border-r border-slate-800/80 flex flex-col h-screen sticky top-0 shrink-0 select-none transition-transform duration-300 z-50 ${
+          mobileMenuOpen
+            ? 'fixed inset-y-0 left-0 translate-x-0'
+            : 'hidden lg:flex'
+        }`}
+      >
+        {/* Brand Header */}
+        <div className="p-5 border-b border-slate-800/80 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-tr from-emerald-600 to-teal-400 rounded-xl flex items-center justify-center shadow-md shadow-emerald-500/20">
+              <Leaf className="w-5 h-5 text-slate-950" />
+            </div>
+            <div>
+              <h1 className="font-extrabold text-lg text-slate-100 tracking-tight leading-none">
+                EcoSphere
+              </h1>
+              <span className="text-[10px] font-semibold tracking-wider uppercase text-emerald-400">
+                ESG Platform
+              </span>
+            </div>
+          </div>
+          {/* Mobile Close Button */}
+          <button
+            onClick={() => setMobileMenuOpen && setMobileMenuOpen(false)}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 lg:hidden cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
-        <div>
-          <h1 className="font-extrabold text-lg text-slate-100 tracking-tight leading-none">
-            EcoSphere
-          </h1>
-          <span className="text-[10px] font-semibold tracking-wider uppercase text-emerald-400">
-            ESG Platform
-          </span>
-        </div>
-      </div>
 
       {/* Navigation Links */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
@@ -237,6 +245,7 @@ const Sidebar = () => {
         </div>
       </div>
     </aside>
+  </>
   )
 }
 

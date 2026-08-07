@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import Badge from '../common/Badge'
-import { LogOut, Bell } from 'lucide-react'
+import { LogOut, Bell, Menu } from 'lucide-react'
 import { api } from '../../lib/api'
 import { useNavigate } from 'react-router-dom'
 
-const Navbar = () => {
+const Navbar = ({ onToggleMobileMenu }) => {
   const { profile, role, user, signOut, token } = useAuth()
   const navigate = useNavigate()
   const [notifications, setNotifications] = useState([])
@@ -63,9 +63,18 @@ const Navbar = () => {
   }
 
   return (
-    <header className="h-16 bg-slate-950/80 border-b border-slate-800/80 px-6 flex items-center justify-between sticky top-0 z-30 backdrop-blur-md">
+    <header className="h-16 bg-slate-950/80 border-b border-slate-800/80 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 backdrop-blur-md">
       <div className="flex items-center gap-3">
-        <span className="text-xs font-semibold text-slate-400">Environment:</span>
+        {/* Mobile Menu Button */}
+        <button
+          onClick={onToggleMobileMenu}
+          className="p-2 text-slate-400 hover:text-slate-100 hover:bg-slate-900 rounded-xl lg:hidden cursor-pointer"
+          title="Toggle Navigation Menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
+        <span className="text-xs font-semibold text-slate-400 hidden sm:inline">Environment:</span>
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
           Production (Supabase)
