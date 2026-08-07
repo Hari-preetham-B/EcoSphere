@@ -35,8 +35,9 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    # Enable CORS for frontend integration
-    CORS(app, resources={r"/api/*": {"origins": "*", "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"], "allow_headers": "*"}})
+    # Enable CORS for frontend integration (read FRONTEND_URL env var, default to http://localhost:5173)
+    frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+    CORS(app, resources={r"/api/*": {"origins": [frontend_url], "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"], "allow_headers": "*"}})
 
     # Initialize extensions
     db.init_app(app)
