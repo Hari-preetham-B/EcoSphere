@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { api } from '../lib/api'
 import Badge from '../components/common/Badge'
 import Modal from '../components/common/Modal'
 import { UserCog, Search, RefreshCw, Shield, AlertCircle, CheckCircle2, Info } from 'lucide-react'
@@ -19,17 +20,11 @@ const UserManagement = () => {
   const [submitting, setSubmitting] = useState(false)
   const [modalError, setModalError] = useState('')
 
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
-
   const fetchUsers = async () => {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch(`${API_BASE}/users`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      if (!res.ok) throw new Error('Failed to load users')
-      const data = await res.json()
+      const data = await api.get('/users', token)
       setUsers(data)
     } catch (err) {
       setError(err.message)
@@ -56,17 +51,7 @@ const UserManagement = () => {
     setModalError('')
 
     try {
-      const res = await fetch(`${API_BASE}/users/${selectedUser.id}/role`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ role: targetRole })
-      })
-
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to update role')
+      await api.put(`/users/${selectedUser.id}/role`, token, { role: targetRole })
 
       setIsModalOpen(false)
       fetchUsers()

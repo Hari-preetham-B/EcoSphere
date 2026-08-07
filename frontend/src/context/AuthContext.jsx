@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { api } from '../lib/api'
 
 const AuthContext = createContext({})
 
@@ -11,23 +12,11 @@ export const AuthProvider = ({ children }) => {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
-
   // Fetch database user profile with role from backend
   const fetchProfile = async (accessToken) => {
     try {
-      const res = await fetch(`${API_BASE}/auth/me`, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`
-        }
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setProfile(data.user)
-      } else {
-        console.error('Failed to fetch backend profile:', res.status, res.statusText)
-        setProfile(null)
-      }
+      const data = await api.get('/auth/me', accessToken)
+      setProfile(data.user)
     } catch (err) {
       console.error('Error fetching backend user profile:', err)
       setProfile(null)

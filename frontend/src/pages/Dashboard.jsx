@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { api } from '../lib/api'
 import Badge from '../components/common/Badge'
 import { Link } from 'react-router-dom'
 import {
@@ -25,19 +26,14 @@ const Dashboard = () => {
   })
   const [loading, setLoading] = useState(true)
 
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
-
   useEffect(() => {
     const fetchDashboardStats = async () => {
       if (!token) return
       try {
-        const [deptRes, catRes] = await Promise.all([
-          fetch(`${API_BASE}/departments`, { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch(`${API_BASE}/categories`, { headers: { 'Authorization': `Bearer ${token}` } })
+        const [depts, cats] = await Promise.all([
+          api.get('/departments', token).catch(() => []),
+          api.get('/categories', token).catch(() => [])
         ])
-
-        const depts = deptRes.ok ? await deptRes.json() : []
-        const cats = catRes.ok ? await catRes.json() : []
 
         setStats({
           departmentsCount: depts.length,

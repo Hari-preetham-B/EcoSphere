@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { api } from '../lib/api'
 import Badge from '../components/common/Badge'
 import Modal from '../components/common/Modal'
 import { Tags, Plus, Edit2, Trash2, Search, Filter, RefreshCw, AlertCircle, Calendar } from 'lucide-react'
@@ -24,21 +25,15 @@ const Categories = () => {
   const [formError, setFormError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
-
   const fetchCategories = async () => {
     setLoading(true)
     setError('')
     try {
-      let url = `${API_BASE}/categories?`
-      if (typeFilter) url += `type=${encodeURIComponent(typeFilter)}&`
-      if (statusFilter) url += `status=${encodeURIComponent(statusFilter)}&`
+      let path = '/categories?'
+      if (typeFilter) path += `type=${encodeURIComponent(typeFilter)}&`
+      if (statusFilter) path += `status=${encodeURIComponent(statusFilter)}&`
 
-      const res = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      if (!res.ok) throw new Error('Failed to load categories')
-      const data = await res.json()
+      const data = await api.get(path, token)
       setCategories(data)
     } catch (err) {
       setError(err.message)
@@ -79,22 +74,11 @@ const Categories = () => {
     setSubmitting(true)
 
     try {
-      const url = editingCat
-        ? `${API_BASE}/categories/${editingCat.id}`
-        : `${API_BASE}/categories`
-      const method = editingCat ? 'PUT' : 'POST'
-
-      const res = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      })
-
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to save category')
+      if (editingCat) {
+        await api.put(`/categories/${editingCat.id}`, token, formData)
+      } else {
+        await api.post('/categories', token, formData)
+      }
 
       setIsModalOpen(false)
       fetchCategories()
@@ -109,12 +93,7 @@ const Categories = () => {
     if (!window.confirm(`Are you sure you want to delete category "${cat.name}"?`)) return
 
     try {
-      const res = await fetch(`${API_BASE}/categories/${cat.id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to delete category')
+      await api.delete(`/categories/${cat.id}`, token)
       fetchCategories()
     } catch (err) {
       alert(err.message)

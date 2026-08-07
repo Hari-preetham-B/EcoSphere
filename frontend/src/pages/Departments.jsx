@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { api } from '../lib/api'
 import Badge from '../components/common/Badge'
 import Modal from '../components/common/Modal'
 import { Building2, Plus, Edit2, Trash2, Search, Filter, RefreshCw, AlertCircle, Users } from 'lucide-react'
@@ -26,19 +27,13 @@ const Departments = () => {
   const [formError, setFormError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
-
   const fetchDepartments = async () => {
     setLoading(true)
     setError('')
     try {
-      let url = `${API_BASE}/departments`
-      if (statusFilter) url += `?status=${statusFilter}`
-      const res = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      if (!res.ok) throw new Error('Failed to load departments')
-      const data = await res.json()
+      let path = '/departments'
+      if (statusFilter) path += `?status=${statusFilter}`
+      const data = await api.get(path, token)
       setDepartments(data)
     } catch (err) {
       setError(err.message)
@@ -85,28 +80,17 @@ const Departments = () => {
     setSubmitting(true)
 
     try {
-      const url = editingDept
-        ? `${API_BASE}/departments/${editingDept.id}`
-        : `${API_BASE}/departments`
-      const method = editingDept ? 'PUT' : 'POST'
-
       const payload = {
         ...formData,
         parent_department_id: formData.parent_department_id ? parseInt(formData.parent_department_id) : null,
         employee_count: parseInt(formData.employee_count || 0)
       }
 
-      const res = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      })
-
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to save department')
+      if (editingDept) {
+        await api.put(`/departments/${editingDept.id}`, token, payload)
+      } else {
+        await api.post('/departments', token, payload)
+      }
 
       setIsModalOpen(false)
       fetchDepartments()
@@ -121,12 +105,7 @@ const Departments = () => {
     if (!window.confirm(`Are you sure you want to delete department "${dept.name}"?`)) return
 
     try {
-      const res = await fetch(`${API_BASE}/departments/${dept.id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to delete department')
+      await api.delete(`/departments/${dept.id}`, token)
       fetchDepartments()
     } catch (err) {
       alert(err.message)
