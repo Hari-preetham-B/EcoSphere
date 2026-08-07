@@ -40,6 +40,19 @@ const Sidebar = ({ mobileMenuOpen, setMobileMenuOpen }) => {
   const canEditEnv = role === 'Admin' || role === 'ESG Manager'
   const isManager = role === 'Admin' || role === 'ESG Manager'
 
+  const adminNav = [
+    { name: 'Departments', path: '/departments', icon: Building2 },
+    { name: 'Categories', path: '/categories', icon: Tags },
+    { name: 'User & Roles', path: '/users', icon: UserCog },
+  ]
+
+  const systemNav = [
+    { name: 'Notifications', path: '/notifications', icon: Bell },
+    { name: 'Notification Settings', path: '/settings/notifications', icon: BellRing, adminOnly: true },
+    { name: 'ESG Configuration', path: '/settings/esg', icon: Sliders, adminOnly: true },
+    { name: 'Settings', path: '/settings', icon: Settings },
+  ]
+
   const handleNavClick = () => {
     if (setMobileMenuOpen) setMobileMenuOpen(false)
   }
